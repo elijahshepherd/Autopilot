@@ -80,6 +80,7 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           GYP_DEFINES: "kerberos_use_rtld=false"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download built-in extensions
         run: node build/lib/builtInExtensions.ts
@@ -124,6 +125,7 @@ jobs:
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
           GYP_DEFINES: "kerberos_use_rtld=false"
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download built-in extensions
         run: node build/lib/builtInExtensions.ts
