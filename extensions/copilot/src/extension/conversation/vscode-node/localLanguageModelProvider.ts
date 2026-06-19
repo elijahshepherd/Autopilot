@@ -33,8 +33,17 @@ function extractMessages(messages: readonly vscode.LanguageModelChatRequestMessa
 	}));
 }
 
+/** Strip the local/{source}/ prefix to get the raw model name the API expects. */
 function chatModelId(model: vscode.LanguageModelChatInformation): string {
-	return model.id.includes('/') ? model.id.slice(model.id.indexOf('/') + 1) : model.id;
+	// id format: local/{source}/{actualModelName}
+	const parts = model.id.split('/');
+	if (parts.length >= 3 && parts[0] === 'local') {
+		return parts.slice(2).join('/');
+	}
+	if (parts.length >= 2) {
+		return parts.slice(1).join('/');
+	}
+	return model.id;
 }
 
 function makeModelInfo(id: string, name: string, family: string, version: string, supportsVision: boolean): vscode.LanguageModelChatInformation {
