@@ -6,6 +6,7 @@
 
 import { Raw } from '@vscode/prompt-tsx';
 import * as vscode from 'vscode';
+import { LocalLanguageModelProvider } from './localLanguageModelProvider';
 import { IAuthenticationService } from '../../../platform/authentication/common/authentication';
 import { CopilotToken } from '../../../platform/authentication/common/copilotToken';
 import { IBlockedExtensionService } from '../../../platform/chat/common/blockedExtensionService';
@@ -248,6 +249,7 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		// initial
 		this.activationBlocker = Promise.all([
 			this._registerChatProvider(),
+			this._registerLocalProvider(),
 			this._registerEmbeddings(),
 		]).then(() => { });
 	}
@@ -281,6 +283,12 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			void this._refreshUtilityOverrides();
 			this._onDidChange.fire();
 		}));
+	}
+
+	private async _registerLocalProvider(): Promise<void> {
+		const localProvider = new LocalLanguageModelProvider();
+		this._register(vscode.lm.registerLanguageModelChatProvider('local', localProvider));
+		this._register(localProvider);
 	}
 
 	private async _provideLanguageModelChatInfo(options: { silent: boolean }, token: vscode.CancellationToken): Promise<vscode.LanguageModelChatInformation[]> {
