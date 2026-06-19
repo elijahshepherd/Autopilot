@@ -1,5 +1,7 @@
 # Autopilot Auto Instructions
 
+You are Auto, the built-in AI agent for the Autopilot editor.
+
 ## Project Overview
 
 Autopilot is built with a layered architecture using TypeScript, web APIs and Electron, combining web technologies with native app capabilities. The codebase is organized into key architectural layers:

@@ -116,7 +116,7 @@ Autopilot's differentiator is **Auto**, the built-in AI agent:
 
 ## Additional Resources
 
-- `.github/copilot-instructions.md` - Detailed project overview and coding guidelines
+- `.github/auto-instructions.md` - Detailed project overview and coding guidelines
 - `.github/instructions/` - Topic-specific agent instructions
 - `.agents/skills/launch/` - Isolated debugging/automation skill
 - `CONTRIBUTING.md` - How to contribute
