@@ -283,8 +283,7 @@ export class NewChatWidget extends Disposable {
 
 		if (!this._renderHarnessPickerInControls) {
 			const withLabel = dom.append(pickersRow, dom.$('.session-workspace-picker-label.session-workspace-picker-with-label'));
-			withLabel.textContent = localize('newSessionWith', "with");
-			this._newChatInput.sessionTypePicker.render(pickersRow, { className: 'sessions-chat-session-type-picker' });
+			withLabel.textContent = localize('newSessionWithLocal', "with Local");
 		}
 		return this._workspacePicker.onDidSelectWorkspace(() => {
 			const folderUri = this._workspacePicker.selectedFolderUri;
