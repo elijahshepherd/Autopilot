@@ -1,4 +1,4 @@
-# Autopilot Copilot Instructions
+# Autopilot Auto Instructions
 
 ## Project Overview
 

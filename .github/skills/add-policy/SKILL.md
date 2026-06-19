@@ -5,7 +5,7 @@ description: Use when adding, modifying, or reviewing VS Code configuration poli
 
 # Adding a Configuration Policy
 
-Policies allow enterprise administrators to lock configuration settings via OS-level mechanisms (Windows Group Policy, macOS managed preferences, Linux config files) or via Copilot account-level policy data. This skill covers the complete procedure.
+Policies allow enterprise administrators to lock configuration settings via OS-level mechanisms (Windows Group Policy, macOS managed preferences, Linux config files) or via Auto account-level policy data. This skill covers the complete procedure.
 
 ## When to Use
 
@@ -74,7 +74,7 @@ policy: {
 
 **Optional: `value` function for account-based policy:**
 
-If this policy should also be controllable via Copilot account policy data (from `IPolicyData`), add a `value` function:
+If this policy should also be controllable via Auto account policy data (from `IPolicyData`), add a `value` function:
 
 ```typescript
 policy: {
@@ -115,7 +115,7 @@ import { PolicyCategory } from '../../../../base/common/policy.js';
 Existing categories in the `PolicyCategory` enum:
 - `Extensions`
 - `IntegratedTerminal`
-- `InteractiveSession` (used for all chat/Copilot policies)
+- `InteractiveSession` (used for all chat/Auto policies)
 - `Telemetry`
 - `Update`
 
@@ -193,19 +193,19 @@ The file `src/vs/workbench/contrib/policyExport/test/node/extensionPolicyFixture
 
 ## GitHub Preview Features
 
-If your setting is a **GitHub Preview Feature** — meaning it's a Copilot/chat feature that organizations can disable via their GitHub account-level policy — you **must** add a `value` function that checks `policyData.chat_preview_features_enabled`.
+If your setting is a **GitHub Preview Feature** — meaning it's an Auto/chat feature that organizations can disable via their GitHub account-level policy — you **must** add a `value` function that checks `policyData.chat_preview_features_enabled`.
 
 ### When to add this flag
 
 Add the `chat_preview_features_enabled` check when **all** of these apply:
 
-- The setting controls a Copilot or chat feature (e.g., agent tools, hooks, MCP, auto-approve)
+- The setting controls an Auto or chat feature (e.g., agent tools, hooks, MCP, auto-approve)
 - The feature is in preview or experimental status (typically tagged `'preview'` or `'experimental'`)
 - An organization admin should be able to disable it for all users in their org via GitHub account policy
 
 ### How it works
 
-The `chat_preview_features_enabled` field on `IPolicyData` (defined in `src/vs/base/common/defaultAccount.ts`) is populated from the user's GitHub Copilot token entitlements. When an organization admin disables preview features, `chat_preview_features_enabled` is set to `false`.
+The `chat_preview_features_enabled` field on `IPolicyData` (defined in `src/vs/base/common/defaultAccount.ts`) is populated from the user's Auto token entitlements. When an organization admin disables preview features, `chat_preview_features_enabled` is set to `false`.
 
 ### Pattern
 
@@ -237,7 +237,7 @@ See `chat.tools.global.autoApprove` and `chat.useHooks` in `src/vs/workbench/con
 
 ## Enterprise Managed Settings (native MDM / GitHub server)
 
-GitHub Copilot enterprise admins can lock settings through a **managed-settings** bag.
+Auto enterprise admins can lock settings through a **managed-settings** bag.
 VS Code feeds the bag from **two** channels: native MDM (Windows registry / macOS plist)
 and the GitHub `/copilot_internal/managed_settings` endpoint. (The external
 `managed-settings-schema.json` also describes a `managed-settings.json` file channel, but
@@ -316,7 +316,7 @@ Key rules and internals:
   during export, and **Developer: Policy Diagnostics** lists registered owner/reference
   settings under the same policy name.
 
-For managed-settings-specific examples that combine `policyReference` with Copilot
+For managed-settings-specific examples that combine `policyReference` with Auto
 managed settings, see [github-managed-settings.md](./github-managed-settings.md).
 
 ## Examples

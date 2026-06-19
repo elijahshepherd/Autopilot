@@ -456,7 +456,7 @@
 		"action": "close",
 		"reason": "not_planned",
 		"addLabel": "*caused-by-extension",
-		"comment": "It looks like this is caused by the Copilot extension. Please file the issue in the [Copilot Discussion Forum](https://github.com/community/community/discussions/categories/copilot). Make sure to check their issue reporting template and provide them relevant information such as the extension version you're using. See also our [issue reporting guidelines](https://aka.ms/vscodeissuereporting) for more information.\n\nHappy Coding!"
+		"comment": "It looks like this is caused by the Auto extension. Please file the issue in the [Auto Discussion Forum](https://github.com/community/community/discussions/categories/copilot). Make sure to check their issue reporting template and provide them relevant information such as the extension version you're using. See also our [issue reporting guidelines](https://aka.ms/vscodeissuereporting) for more information.\n\nHappy Coding!"
 	},
 	{
 		"type": "comment",
@@ -521,7 +521,7 @@
 		"action": "updateLabels",
 		"addLabel": "info-needed",
 		"removeLabel": "~info-needed",
-		"comment": "Thanks for creating this issue! We figured it's missing some basic information or in some other way doesn't follow our [issue reporting guidelines](https://aka.ms/vscodeissuereporting). Please take the time to review these and update the issue.\n\nFor Copilot Issues, be sure to visit our [Copilot-specific guidelines](https://github.com/microsoft/vscode/wiki/Copilot-Issues) page for details on the necessary information.\n\nHappy Coding!"
+		"comment": "Thanks for creating this issue! We figured it's missing some basic information or in some other way doesn't follow our [issue reporting guidelines](https://aka.ms/vscodeissuereporting). Please take the time to review these and update the issue.\n\nFor Auto Issues, be sure to visit our [Auto-specific guidelines](https://github.com/microsoft/vscode/wiki/Copilot-Issues) page for details on the necessary information.\n\nHappy Coding!"
 	},
 	{
 		"type": "label",
@@ -662,7 +662,7 @@
 		"reason": "not_planned",
 		"addLabel": "agent-behavior",
 		"removeLabel": "~agent-behavior",
-		"comment": "Unfortunately I think you are hitting a AI quality issue that is not actionable enough for us to track a bug. We would recommend that you try other available models and look at the [Tips and tricks for Copilot in VS Code](https://code.visualstudio.com/docs/copilot/copilot-tips-and-tricks) doc page.\n\nWe are constantly improving AI quality in every release, thank you for the feedback! If you believe this is a technical bug, we recommend you report a new issue including logs described on the [Copilot Issues](https://github.com/microsoft/vscode/wiki/Copilot-Issues) wiki page."
+		"comment": "Unfortunately I think you are hitting a AI quality issue that is not actionable enough for us to track a bug. We would recommend that you try other available models and look at the [Tips and tricks for Auto](https://code.visualstudio.com/docs/copilot/copilot-tips-and-tricks) doc page.\n\nWe are constantly improving AI quality in every release, thank you for the feedback! If you believe this is a technical bug, we recommend you report a new issue including logs described on the [Auto Issues](https://github.com/microsoft/vscode/wiki/Copilot-Issues) wiki page."
 	},
 	{
 		"type": "label",

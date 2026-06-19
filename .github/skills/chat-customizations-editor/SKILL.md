@@ -7,7 +7,7 @@ metadata:
 
 # Chat Customizations Editor
 
-Split-view management pane for AI customization items across workspace, user, extension, and plugin storage. Supports harness-based filtering (Local, Copilot CLI, Claude).
+Split-view management pane for AI customization items across workspace, user, extension, and plugin storage. Supports harness-based filtering (Local, Auto CLI, Claude).
 
 ## Spec
 

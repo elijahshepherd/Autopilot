@@ -66,7 +66,7 @@ Important runner behavior:
 - Pass `--temporary-user-data` only if a clean profile is part of the scenario.
 - Pass `--seed-user-data-dir <path>` to copy a logged-in profile into a fresh target profile before launch. The target profile may contain auth secrets; keep it inside ignored local `.build/...` folders and never attach it to issues or PRs.
 
-**Safety: chat runs execute on the real machine.** The Code OSS instance launched by these runners is a full VS Code with Copilot auth on the user's actual computer — not a sandbox. Chat prompts you craft will be sent to a real LLM, and any tool calls the agent makes (terminal commands, file edits, etc.) will execute for real. Be responsible:
+**Safety: chat runs execute on the real machine.** The Code OSS instance launched by these runners is a full VS Code with Auto auth on the user's actual computer — not a sandbox. Chat prompts you craft will be sent to a real LLM, and any tool calls the agent makes (terminal commands, file edits, etc.) will execute for real. Be responsible:
 
 - **Use a throwaway workspace**, not the real repo. Pass `--workspace <scratch-folder>` pointing to a temporary or gitignored directory (e.g., the runner's scratchpad subfolder, or a folder under `.build/`). The default workspace in checked-in runners is the repo root for convenience, but scratchpad runners for Chat scenarios should always override it to avoid accidental file modifications in the source tree.
 - Use **safe, read-only commands** for prompts that trigger terminal tools (e.g., `touch /tmp/foo`, `git log --oneline`, `ls`). Never instruct the agent to delete files, run destructive commands, or modify the user's workspace.

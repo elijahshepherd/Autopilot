@@ -1,7 +1,7 @@
-# GitHub Copilot Managed Settings
+# GitHub Auto Managed Settings
 
 This file documents the **managed-settings** modality: how an enterprise admin's
-Copilot configuration (delivered to VS Code via native MDM or the GitHub server) flows
+Auto configuration (delivered to VS Code via native MDM or the GitHub server) flows
 into VS Code's policy stack and locks a setting. It is a companion to `SKILL.md` — read
 that first for the general policy lifecycle (`policy:` field, export, artifacts).
 
@@ -11,7 +11,7 @@ existing `policy.value(policyData)` callback already consumes via `AccountPolicy
 
 ## The big idea: one canonical bag, two delivery channels (in VS Code)
 
-Every enterprise-managed Copilot setting resolves through a single normalized bag:
+Every enterprise-managed Auto setting resolves through a single normalized bag:
 
 ```ts
 // src/vs/base/common/policy.ts
@@ -42,7 +42,7 @@ and parsed back into the object-typed setting on read by `PolicyConfiguration`.
 ### Delivery channels
 
 VS Code implements **two** channels feeding the bag; the external schema additionally
-describes a file-based channel that other Copilot clients may implement but that VS Code
+describes a file-based channel that other Auto clients may implement but that VS Code
 does **not** read today (no `managed-settings.json` reader exists in `src/`).
 
 | Channel | Where it's read | Implementation | Lands on |

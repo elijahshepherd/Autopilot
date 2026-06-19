@@ -1,11 +1,11 @@
 ---
 name: otel
-description: OpenTelemetry instrumentation for the Copilot Chat extension — covers the four agent execution paths, the IOTelService abstraction, span/metric/event conventions, and the relationship between code and the user/developer monitoring docs. Use when adding/changing OTel spans, metrics, or events; instrumenting a new agent surface; touching the Copilot CLI bridge or Claude span emission; or updating `extensions/copilot/docs/monitoring/agent_monitoring*.md`.
+description: OpenTelemetry instrumentation for the Auto Chat extension — covers the four agent execution paths, the IOTelService abstraction, span/metric/event conventions, and the relationship between code and the user/developer monitoring docs. Use when adding/changing OTel spans, metrics, or events; instrumenting a new agent surface; touching the Copilot CLI bridge or Claude span emission; or updating `extensions/copilot/docs/monitoring/agent_monitoring*.md`.
 ---
 
 # OpenTelemetry Instrumentation Skill
 
-When adding, changing, or reviewing OTel telemetry in the Copilot Chat extension, **always read the two source-of-truth docs first** and **always keep them in sync with the code you change**.
+When adding, changing, or reviewing OTel telemetry in the Auto Chat extension, **always read the two source-of-truth docs first** and **always keep them in sync with the code you change**.
 
 ## 1. Authoritative Documents
 
@@ -26,8 +26,8 @@ The extension has four agent execution paths, each with a different OTel strateg
 | Agent | Process Model | Strategy | Debug Panel Source |
 |---|---|---|---|
 | **Foreground** (`toolCallingLoop`) | Extension host | Direct `IOTelService` spans | Extension spans |
-| **Copilot CLI in-process** | Extension host (same process) | **Bridge SpanProcessor** — SDK creates spans natively; bridge forwards to debug panel | SDK native spans via bridge |
-| **Copilot CLI terminal** | Separate terminal process | Forward OTel env vars | N/A (separate process) |
+| **Auto CLI in-process** | Extension host (same process) | **Bridge SpanProcessor** — SDK creates spans natively; bridge forwards to debug panel | SDK native spans via bridge |
+| **Auto CLI terminal** | Separate terminal process | Forward OTel env vars | N/A (separate process) |
 | **Claude Code** | Child process (Node fork) | **Synthesized from SDK messages** — extension intercepts the Claude SDK message stream in `claudeMessageDispatch.ts` and emits GenAI spans; LLM calls are proxied through `claudeLanguageModelServer.ts` (which calls `chatMLFetcher`, producing standard `chat` spans). | Extension spans |
 
 > **Why asymmetric?** The CLI SDK runs in-process with full trace hierarchy (subagents, permissions, hooks). A bridge captures this directly. Claude runs as a separate process — internal spans are inaccessible, so the extension synthesizes spans by translating SDK messages and proxying the model API.
@@ -248,7 +248,7 @@ npm test -- --grep "OTel\|Bridge"
 Manual sanity checks:
 
 - The Aspire Dashboard quick-start in `agent_monitoring.md` still works end-to-end (one agent message → `invoke_agent` + `chat` + `execute_tool` spans visible at <http://localhost:18888>).
-- The Agent Debug Log panel in VS Code still shows the full span tree for foreground, Copilot CLI, and Claude sessions.
+- The Agent Debug Log panel in VS Code still shows the full span tree for foreground, Auto CLI, and Claude sessions.
 
 ## 9. Known Risks & Limitations
 

@@ -1,6 +1,6 @@
 # Local Testing: Mock Policy Server
 
-Use the mock policy server to serve arbitrary Copilot policy responses locally.
+Use the mock policy server to serve arbitrary Auto policy responses locally.
 It mocks the four `defaultChatAgent` endpoints that `DefaultAccountService` calls.
 
 ## Quick start

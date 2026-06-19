@@ -37,7 +37,7 @@ Each timestamped log folder has this structure:
 ```text
 <timestamp>/
 ├── main.log                    # Electron main process (app lifecycle, window management)
-├── agenthost.log               # Agent host process (Copilot agent, model listing, agent sessions)
+├── agenthost.log               # Agent host process (Auto agent, model listing, agent sessions)
 ├── mcpGateway.log              # MCP gateway/server coordination
 ├── sharedprocess.log           # Shared process (extensions gallery, global services)
 ├── telemetry.log               # Telemetry events
@@ -79,7 +79,7 @@ A new `output_<timestamp>/` folder and a corresponding `output_logging_<timestam
 |------------------|-------------------|
 | App startup / crashes | `main.log`, `window1/renderer.log` |
 | Extension issues | `window1/exthost/exthost.log`, `window1/exthost/<publisher.ext>/` |
-| Copilot / agent issues | `agenthost.log`, `window1/exthost/GitHub.copilot-chat/` |
+| Auto / agent issues | `agenthost.log`, `window1/exthost/GitHub.copilot-chat/` |
 | Agent host IPC (Agents app) | `window1/output_<timestamp>/agenthost.*.log` |
 | MCP server problems | `mcpGateway.log`, `window1/mcpServer.*.log` |
 | Terminal problems | `terminal.log`, `ptyhost.log` |
