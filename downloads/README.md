@@ -1,7 +1,7 @@
 # Autopilot Downloads
 
-Pre-built binaries are stored by version in subdirectories.
+Download pages for each release:
 
-> **Note:** This repo contains large binary build artifacts. If you clone the entire repo (including downloads), expect a larger than normal download size. Each release is kept under its version folder and old versions are removed when new ones are added.
+- [v0.1.0](0-1.html) — Initial release
 
-## Latest: [v0.1.0](./0.1)
+Files are hosted on [GitHub Releases](https://github.com/elijahshepherd/Autopilot/releases).
