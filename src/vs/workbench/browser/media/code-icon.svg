@@ -1,1 +1,6 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="48" height="48"><image href="code-icon.png" width="48" height="48"/></svg>
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none" width="48" height="48">
+  <path d="M28 32 L28 96 L40 96 L40 76 L62 76 C75 76 84 68 84 54 C84 40 75 32 62 32 Z M40 44 L60 44 C66 44 70 48 70 54 C70 60 66 64 60 64 L40 64 Z" fill="#cccccc"/>
+  <circle cx="98" cy="32" r="6" fill="#cccccc"/>
+  <circle cx="98" cy="96" r="6" fill="#cccccc"/>
+  <rect x="94" y="32" width="8" height="64" fill="#cccccc"/>
+</svg>

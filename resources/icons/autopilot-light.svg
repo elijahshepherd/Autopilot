@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 128 128" fill="none">
+  <rect width="128" height="128" rx="24" fill="#000"/>
+  <g fill="#fff">
+    <!-- Letter A -->
+    <path d="M22 96 L34 96 L37 84 L52 84 L55 96 L67 96 L52.5 32 L36.5 32 Z M40 73 L44.5 60 L49 73 Z"/>
+    <!-- Letter P -->
+    <path d="M76 32 L76 96 L88 96 L88 70 L97 70 C109 70 116 62 116 51 C116 40 109 32 97 32 Z M88 44 L97 44 C103 44 105 47 105 51 C105 55 103 58 97 58 L88 58 Z"/>
+  </g>
+</svg>

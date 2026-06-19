@@ -1,9 +1,12 @@
 import * as vscode from 'vscode';
 import * as http from 'http';
+import * as fs from 'fs';
+import * as path from 'path';
+import * as os from 'os';
 
 // ── Shared helpers ──────────────────────────────────────────────
 
-function httpRequest(method: string, url: string, headers: Record<string, string>, body?: string, timeout = 5000): Promise<{ statusCode: number; body: string }> {
+function httpJson<T>(method: string, url: string, headers: Record<string, string>, body?: string, timeout = 5000): Promise<{ statusCode: number; body: string; json: T | null }> {
 	return new Promise((resolve, reject) => {
 		const urlObj = new URL(url);
 		const options: http.RequestOptions = {
@@ -17,10 +20,15 @@ function httpRequest(method: string, url: string, headers: Record<string, string
 		const req = http.request(options, (res) => {
 			const chunks: Buffer[] = [];
 			res.on('data', (chunk: Buffer) => chunks.push(chunk));
-			res.on('end', () => resolve({ statusCode: res.statusCode ?? 500, body: Buffer.concat(chunks).toString('utf-8') }));
+			res.on('end', () => {
+				const bodyStr = Buffer.concat(chunks).toString('utf-8');
+				let parsed: T | null = null;
+				try { parsed = JSON.parse(bodyStr); } catch { /* not JSON */ }
+				resolve({ statusCode: res.statusCode ?? 500, body: bodyStr, json: parsed });
+			});
 		});
 		req.on('error', reject);
-		req.on('timeout', () => { req.destroy(); reject(new Error('Request timeout')); });
+		req.on('timeout', () => { req.destroy(); reject(new Error(`Request timeout: ${url}`)); });
 		if (body) req.write(body);
 		req.end();
 	});
@@ -28,32 +36,60 @@ function httpRequest(method: string, url: string, headers: Record<string, string
 
 function extractMessages(messages: readonly vscode.LanguageModelChatRequestMessage[]): Array<{ role: string; content: string }> {
 	return messages.map(msg => ({
-		role: msg.role === 1 ? 'user' : 'assistant',
+		role: msg.role === 1 ? 'user' : msg.role === 2 ? 'assistant' : 'user',
 		content: msg.content.map(p => (p && typeof p === 'object' && 'value' in p) ? (p as vscode.LanguageModelTextPart).value : '').join(''),
 	}));
 }
 
 /** Strip the local/{source}/ prefix to get the raw model name the API expects. */
 function chatModelId(model: vscode.LanguageModelChatInformation): string {
-	// id format: local/{source}/{actualModelName}
-	const parts = model.id.split('/');
+	const parts: string[] = model.id.split('/');
 	if (parts.length >= 3 && parts[0] === 'local') {
 		return parts.slice(2).join('/');
 	}
-	if (parts.length >= 2) {
-		return parts.slice(1).join('/');
-	}
+	if (parts.length >= 2) return parts.slice(1).join('/');
 	return model.id;
 }
 
-function makeModelInfo(id: string, name: string, family: string, version: string, supportsVision: boolean): vscode.LanguageModelChatInformation {
+function makeModelInfo(id: string, name: string, family: string, version: string, opts: { maxInputTokens?: number; maxOutputTokens?: number; vision?: boolean } = {}): vscode.LanguageModelChatInformation {
 	return {
 		id, name, family, version,
-		maxInputTokens: 128000,
-		maxOutputTokens: 4096,
-		capabilities: { toolCalling: true, imageInput: supportsVision },
+		maxInputTokens: opts.maxInputTokens ?? 128000,
+		maxOutputTokens: opts.maxOutputTokens ?? 4096,
+		capabilities: { toolCalling: true, imageInput: opts.vision ?? false },
 		isUserSelectable: true,
 	};
+}
+
+/** Read providers.json config from the user's home directory. */
+interface ProviderConfig {
+	name: string;
+	type: 'openai';
+	baseUrl: string;
+	apiKey: string;
+	apiType?: 'chat-completions' | 'responses';
+	models?: Array<{ id: string; name?: string; maxInputTokens?: number; maxOutputTokens?: number; vision?: boolean }>;
+}
+
+interface AutopilotConfig {
+	providers?: ProviderConfig[];
+}
+
+function readProvidersJson(): ProviderConfig[] {
+	const candidates = [
+		path.join(os.homedir(), '.autopilot', 'providers.json'),
+		path.join(os.homedir(), '.config', 'autopilot', 'providers.json'),
+	];
+	for (const p of candidates) {
+		try {
+			if (fs.existsSync(p)) {
+				const raw = fs.readFileSync(p, 'utf-8');
+				const parsed: AutopilotConfig = JSON.parse(raw);
+				return parsed.providers || [];
+			}
+		} catch { /* ignore parse errors */ }
+	}
+	return [];
 }
 
 // ── Source: Ollama ──────────────────────────────────────────────
@@ -63,15 +99,15 @@ interface OllamaTagsResponse { models: OllamaModelEntry[]; }
 
 async function checkOllamaModels(): Promise<vscode.LanguageModelChatInformation[]> {
 	try {
-		const res = await httpRequest('GET', 'http://localhost:11434/api/tags', {}, undefined, 2000);
-		if (res.statusCode !== 200) return [];
-		const data: OllamaTagsResponse = JSON.parse(res.body);
+		const res = await httpJson('GET', 'http://localhost:11434/api/tags', {}, undefined, 2000);
+		if (res.statusCode !== 200 || !res.json) return [];
+		const data = res.json as OllamaTagsResponse;
 		return (data.models || []).map(m => {
 			const family = m.details?.family || m.name.split(':')[0] || 'unknown';
 			return makeModelInfo(
 				`local/ollama/${m.name}`, m.name, family,
 				m.digest?.substring(0, 12) || m.modified_at || '1.0',
-				m.details?.families?.includes('vision') ?? false,
+				{ vision: m.details?.families?.includes('vision') ?? false },
 			);
 		});
 	} catch { return []; }
@@ -80,27 +116,23 @@ async function checkOllamaModels(): Promise<vscode.LanguageModelChatInformation[
 async function ollamaChatResponse(modelId: string, messages: Array<{ role: string; content: string }>, progress: vscode.Progress<vscode.LanguageModelResponsePart>, token: vscode.CancellationToken): Promise<void> {
 	const urlObj = new URL('http://localhost:11434/v1/chat/completions');
 	const body = JSON.stringify({ model: modelId, messages, stream: true });
-	return streamOpenAI(urlObj, {}, body, progress, token);
+	return streamOpenAI(urlObj, { 'Content-Type': 'application/json' }, body, progress, token);
 }
 
-// ── Source: OpenAI-compatible (env vars) ────────────────────────
+// ── Source: OpenAI-compatible (env vars / providers.json / custom) ────────
 
-interface OpenAIModelEntry { id: string; created: number; owned_by: string; }
-interface OpenAIModelsResponse { data: OpenAIModelEntry[]; }
-
-const CHAT_MODEL_PREFIXES = ['gpt-', 'o1', 'o3', 'chatgpt-'];
+interface OpenAIModelEntry { id: string; created?: number; owned_by?: string; }
+interface OpenAIModelsResponse { data?: OpenAIModelEntry[]; }
 
 async function checkOpenAIModels(baseUrl: string, apiKey: string): Promise<vscode.LanguageModelChatInformation[]> {
 	try {
-		const res = await httpRequest('GET', `${baseUrl}/models`, { 'Authorization': `Bearer ${apiKey}` }, undefined, 5000);
-		if (res.statusCode !== 200) return [];
-		const data: OpenAIModelsResponse = JSON.parse(res.body);
-		return (data.data || [])
-			.filter(m => CHAT_MODEL_PREFIXES.some(p => m.id.startsWith(p)))
-			.map(m => makeModelInfo(
-				`local/openai/${m.id}`, m.id, m.id.split('-')[0] || 'openai',
-				String(m.created), m.id.includes('vision') || m.id.includes('o1'),
-			));
+		const res = await httpJson('GET', `${baseUrl}/models`, { 'Authorization': `Bearer ${apiKey}` }, undefined, 5000);
+		if (res.statusCode !== 200 || !res.json) return [];
+		const data = res.json as OpenAIModelsResponse;
+		return (data.data || []).map(m => makeModelInfo(
+			`local/openai/${m.id}`, m.id, m.id.split('-')[0] || 'openai',
+			String(m.created ?? Date.now()),
+		));
 	} catch { return []; }
 }
 
@@ -110,22 +142,17 @@ async function openAIChatResponse(baseUrl: string, apiKey: string, modelId: stri
 	return streamOpenAI(urlObj, { 'Authorization': `Bearer ${apiKey}` }, body, progress, token);
 }
 
-// ── Source: Anthropic (env vars) ────────────────────────────────
-
-interface AnthropicModelEntry { type: string; id: string; display_name?: string; created_at: string; }
-interface AnthropicModelsResponse { data: AnthropicModelEntry[]; }
+// ── Source: Anthropic (env vars / providers.json) ───────────────
 
 async function checkAnthropicModels(baseUrl: string, apiKey: string): Promise<vscode.LanguageModelChatInformation[]> {
 	try {
-		const res = await httpRequest('GET', `${baseUrl}/models`, { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, undefined, 5000);
-		if (res.statusCode !== 200) return [];
-		const data: AnthropicModelsResponse = JSON.parse(res.body);
-		return (data.data || [])
-			.filter(m => m.type === 'model')
-			.map(m => makeModelInfo(
-				`local/anthropic/${m.id}`, m.display_name || m.id, 'claude',
-				m.created_at || '1.0', true,
-			));
+		const res = await httpJson('GET', `${baseUrl}/models`, { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01' }, undefined, 5000);
+		if (res.statusCode !== 200 || !res.json) return [];
+		const data = res.json as { data?: Array<{ type: string; id: string; display_name?: string; created_at?: string }> };
+		return (data.data || []).filter(m => m.type === 'model').map(m => makeModelInfo(
+			`local/anthropic/${m.id}`, m.display_name || m.id, 'claude',
+			m.created_at || '1.0', { vision: true },
+		));
 	} catch { return []; }
 }
 
@@ -140,6 +167,41 @@ async function anthropicChatResponse(baseUrl: string, apiKey: string, modelId: s
 	return streamAnthropic(urlObj, { 'x-api-key': apiKey, 'anthropic-version': '2023-06-01', 'Content-Type': 'application/json' }, body, progress, token);
 }
 
+// ── Source: Custom OpenAI-compatible (from providers.json) ─────
+
+async function checkCustomModels(provider: ProviderConfig): Promise<vscode.LanguageModelChatInformation[]> {
+	if (provider.models && provider.models.length > 0) {
+		// Use statically configured models
+		return provider.models.map(m => makeModelInfo(
+			`local/custom/${m.id}`,
+			m.name || m.id,
+			m.id.split('-')[0] || provider.name,
+			'1.0',
+			{ maxInputTokens: m.maxInputTokens, maxOutputTokens: m.maxOutputTokens, vision: m.vision },
+		));
+	}
+	// Otherwise try to discover from API
+	try {
+		const res = await httpJson('GET', `${provider.baseUrl}/models`, { 'Authorization': `Bearer ${provider.apiKey}` }, undefined, 5000);
+		if (res.statusCode !== 200 || !res.json) return [];
+		const data = res.json as OpenAIModelsResponse;
+		return (data.data || []).map(m => makeModelInfo(
+			`local/custom/${m.id}`, m.id, m.id.split('-')[0] || provider.name,
+			String(m.created ?? Date.now()),
+		));
+	} catch { return []; }
+}
+
+async function customChatResponse(provider: ProviderConfig, modelId: string, messages: Array<{ role: string; content: string }>, progress: vscode.Progress<vscode.LanguageModelResponsePart>, token: vscode.CancellationToken): Promise<void> {
+	if (provider.type === 'anthropic' || provider.apiType === 'messages') {
+		return anthropicChatResponse(provider.baseUrl, provider.apiKey, modelId, messages, progress, token);
+	}
+	// Default: OpenAI-compatible (covers NVIDIA, custom endpoints, OpenAI itself)
+	const urlObj = new URL(`${provider.baseUrl}/chat/completions`);
+	const body = JSON.stringify({ model: modelId, messages, stream: true });
+	return streamOpenAI(urlObj, { 'Authorization': `Bearer ${provider.apiKey}` }, body, progress, token);
+}
+
 // ── Streaming helpers ───────────────────────────────────────────
 
 function streamOpenAI(urlObj: URL, headers: Record<string, string>, body: string, progress: vscode.Progress<vscode.LanguageModelResponsePart>, token: vscode.CancellationToken): Promise<void> {
@@ -152,7 +214,10 @@ function streamOpenAI(urlObj: URL, headers: Record<string, string>, body: string
 		const req = http.request(options, (res) => {
 			if (res.statusCode && res.statusCode >= 400) {
 				const chunks: Buffer[] = []; res.on('data', (c: Buffer) => chunks.push(c));
-				res.on('end', () => reject(new Error(`API returned ${res.statusCode}: ${Buffer.concat(chunks).toString('utf-8')}`)));
+				res.on('end', () => {
+					const errBody = Buffer.concat(chunks).toString('utf-8');
+					reject(new Error(`${urlObj.hostname} returned ${res.statusCode}: ${errBody.slice(0, 500)}`));
+				});
 				return;
 			}
 			let buffer = ''; res.setEncoding('utf-8');
@@ -168,7 +233,7 @@ function streamOpenAI(urlObj: URL, headers: Record<string, string>, body: string
 							const parsed = JSON.parse(t.slice(6));
 							const content = parsed?.choices?.[0]?.delta?.content;
 							if (content) progress.report(new vscode.LanguageModelTextPart(content));
-						} catch { /* skip */ }
+						} catch { /* skip malformed */ }
 					}
 				}
 			});
@@ -176,7 +241,7 @@ function streamOpenAI(urlObj: URL, headers: Record<string, string>, body: string
 			res.on('error', reject);
 		});
 		req.on('error', reject);
-		req.on('timeout', () => { req.destroy(); reject(new Error('Request timed out')); });
+		req.on('timeout', () => { req.destroy(); reject(new Error(`Request to ${urlObj.hostname} timed out`)); });
 		if (token) token.onCancellationRequested(() => req.destroy());
 		req.write(body); req.end();
 	});
@@ -192,7 +257,10 @@ function streamAnthropic(urlObj: URL, headers: Record<string, string>, body: str
 		const req = http.request(options, (res) => {
 			if (res.statusCode && res.statusCode >= 400) {
 				const chunks: Buffer[] = []; res.on('data', (c: Buffer) => chunks.push(c));
-				res.on('end', () => reject(new Error(`Anthropic returned ${res.statusCode}: ${Buffer.concat(chunks).toString('utf-8')}`)));
+				res.on('end', () => {
+					const errBody = Buffer.concat(chunks).toString('utf-8');
+					reject(new Error(`${urlObj.hostname} returned ${res.statusCode}: ${errBody.slice(0, 500)}`));
+				});
 				return;
 			}
 			let buffer = ''; res.setEncoding('utf-8');
@@ -217,7 +285,7 @@ function streamAnthropic(urlObj: URL, headers: Record<string, string>, body: str
 			res.on('error', reject);
 		});
 		req.on('error', reject);
-		req.on('timeout', () => { req.destroy(); reject(new Error('Anthropic request timed out')); });
+		req.on('timeout', () => { req.destroy(); reject(new Error(`Anthropic request to ${urlObj.hostname} timed out`)); });
 		if (token) token.onCancellationRequested(() => req.destroy());
 		req.write(body); req.end();
 	});
@@ -228,7 +296,7 @@ function streamAnthropic(urlObj: URL, headers: Record<string, string>, body: str
 type Listener<T> = (e: T) => unknown;
 
 interface ModelSource {
-	name: string;
+	sourcePrefix: string;
 	check(): Promise<vscode.LanguageModelChatInformation[]>;
 	respond(model: vscode.LanguageModelChatInformation, messages: Array<{ role: string; content: string }>, progress: vscode.Progress<vscode.LanguageModelResponsePart>, token: vscode.CancellationToken): Promise<void>;
 }
@@ -256,19 +324,19 @@ export class LocalLanguageModelProvider implements vscode.LanguageModelChatProvi
 	}
 
 	private _initSources(): void {
-		// Always check Ollama
+		// Ollama is always checked (zero-config local)
 		this._modelSourceMap.set('ollama', {
-			name: 'ollama',
+			sourcePrefix: 'ollama',
 			check: checkOllamaModels,
 			respond: async (model, messages, progress, token) => ollamaChatResponse(chatModelId(model), messages, progress, token),
 		});
 
-		// OpenAI-compatible from env vars
+		// OpenAI-compatible from env vars (also covers NVIDIA NIM, etc.)
 		const openaiKey = process.env.OPENAI_API_KEY?.trim();
 		if (openaiKey) {
 			const baseUrl = (process.env.OPENAI_BASE_URL?.trim() || 'https://api.openai.com/v1').replace(/\/+$/, '');
 			this._modelSourceMap.set('openai', {
-				name: 'openai',
+				sourcePrefix: 'openai',
 				check: () => checkOpenAIModels(baseUrl, openaiKey),
 				respond: (model, messages, progress, token) => openAIChatResponse(baseUrl, openaiKey, chatModelId(model), messages, progress, token),
 			});
@@ -279,9 +347,24 @@ export class LocalLanguageModelProvider implements vscode.LanguageModelChatProvi
 		if (anthropicKey) {
 			const baseUrl = (process.env.ANTHROPIC_BASE_URL?.trim() || 'https://api.anthropic.com/v1').replace(/\/+$/, '');
 			this._modelSourceMap.set('anthropic', {
-				name: 'anthropic',
+				sourcePrefix: 'anthropic',
 				check: () => checkAnthropicModels(baseUrl, anthropicKey),
 				respond: (model, messages, progress, token) => anthropicChatResponse(baseUrl, anthropicKey, chatModelId(model), messages, progress, token),
+			});
+		}
+
+		// Custom providers from ~/.autopilot/providers.json
+		const customProviders = readProvidersJson();
+		let customIndex = 0;
+		for (const provider of customProviders) {
+			if (!provider.name || !provider.baseUrl || !provider.apiKey) continue;
+			const id = `custom_${customIndex++}`;
+			const proxiedProvider = provider;
+			const proxiedId = id;
+			this._modelSourceMap.set(proxiedId, {
+				sourcePrefix: proxiedId,
+				check: () => checkCustomModels(proxiedProvider),
+				respond: (model, messages, progress, token) => customChatResponse(proxiedProvider, chatModelId(model), messages, progress, token),
 			});
 		}
 	}
@@ -297,7 +380,7 @@ export class LocalLanguageModelProvider implements vscode.LanguageModelChatProvi
 			try {
 				const models = await source.check();
 				allModels.push(...models);
-			} catch { /* source unavailable, skip */ }
+			} catch { /* source unavailable, skip silently */ }
 		}
 		const ids = allModels.map(m => m.id).sort();
 		const oldIds = this._cachedModels.map(m => m.id).sort();
@@ -319,8 +402,8 @@ export class LocalLanguageModelProvider implements vscode.LanguageModelChatProvi
 		progress: vscode.Progress<vscode.LanguageModelResponsePart>,
 		token: vscode.CancellationToken
 	): Promise<void> {
-		const prefix = model.id.includes('/') ? model.id.split('/')[0] : '';
-		const sourcePrefix = model.id.startsWith('local/') ? model.id.split('/')[1] : prefix;
+		const parts = model.id.split('/');
+		const sourcePrefix = parts.length >= 2 ? parts[1] : '';
 
 		const msgs = extractMessages(messages);
 		const source = this._modelSourceMap.get(sourcePrefix);

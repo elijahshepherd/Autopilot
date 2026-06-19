@@ -4440,3 +4440,38 @@ have to be updated for changes to the rules above, or to support more deeply nes
 	padding: 2px 8px;
 	font-size: 11px;
 }
+
+/* Autopilot: ensure error / retry buttons are clearly legible against white themes */
+.interactive-item-container.interactive-response .rendered-markdown a,
+.interactive-item-container .chat-notification-widget .rendered-markdown a,
+.chat-notification-widget .rendered-markdown a {
+	color: var(--vscode-textLink-foreground);
+	text-decoration: underline;
+	text-decoration-thickness: 1px;
+	text-underline-offset: 2px;
+	font-weight: 600;
+}
+
+.interactive-item-container.interactive-response .rendered-markdown a:hover,
+.chat-notification-widget .rendered-markdown a:hover {
+	color: var(--vscode-textLink-activeForeground);
+}
+
+.chat-notification-widget.interactive-response-error-details,
+.chat-notification-widget {
+	background: var(--vscode-notifications-background, var(--vscode-editorWidget-background));
+	border-color: var(--vscode-notifications-border, var(--vscode-input-background));
+}
+
+.monaco-workbench .chat-notification-widget .codicon-error {
+	color: var(--vscode-editorError-foreground, #c00000) !important;
+	opacity: 0.95;
+}
+.monaco-workbench .chat-notification-widget .codicon-warning {
+	color: var(--vscode-editorWarning-foreground, #bf8803) !important;
+	opacity: 0.95;
+}
+.monaco-workbench .chat-notification-widget .codicon-info {
+	color: var(--vscode-editorInfo-foreground, #1a7e3c) !important;
+	opacity: 0.95;
+}

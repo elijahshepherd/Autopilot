@@ -219,17 +219,16 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.3.0
-          name: "Autopilot v0.3.0"
+          tag_name: v0.4.0
+          name: "Autopilot v0.4.0"
           body: |
-            ## Autopilot v0.3.0
+            ## Autopilot v0.4.0
 
             ### Changes
-            - Session label now shows "with Local" instead of dynamic source picker
-            - Theme is now fully black/white monochrome
-            - Zero-config local models: auto-detects Ollama on localhost:11434
-            - Env var providers: OPENAI_API_KEY / ANTHROPIC_API_KEY supported
-            - No GitHub Copilot token needed
+            - Fixed NVIDIA NIM / custom OpenAI endpoints: requests go directly to the API
+            - Added providers.json config support at `~/.autopilot/providers.json`
+            - Real AP-branded SVG logo for app icon, taskbar, and agents window
+            - Improved chat error and retry button contrast on white themes
 
             ### Downloads
             - [Linux x64](autopilot-linux-x64.tar.gz)
