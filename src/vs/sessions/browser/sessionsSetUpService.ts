@@ -300,46 +300,9 @@ class SessionsSetUpWidget extends Disposable {
 	}
 
 	private async _showSignInDialog(): Promise<void> {
-		this.logService.info('[sessions welcome] Showing sign-in dialog');
-
-		const signingInDialogRef = new MutableDisposable<DisposableStore>();
-
-		const success = await this.commandService.executeCommand<boolean>('workbench.action.chat.triggerSetup', undefined, {
-			forceSignInDialog: true,
-			dialogIcon: Codicon.agent,
-			dialogTitle: localize('sessions.signIn', "Sign in to use Agents"),
-			disableCloseButton: true,
-			onSignInStarted: () => {
-				const disposables = new DisposableStore();
-				signingInDialogRef.value = disposables;
-				const dialog = disposables.add(new Dialog(
-					this.layoutService.activeContainer,
-					localize('sessions.signingIn', "Signing in…"),
-					[],
-					createWorkbenchDialogOptions({
-						type: 'none',
-						extraClasses: ['chat-setup-dialog', 'sessions-welcome-dialog'],
-						detail: localize('sessions.signingIn.detail', "Please complete sign-in in the browser."),
-						icon: Codicon.agent,
-						alignment: DialogContentsAlignment.Vertical,
-						cancelId: 0,
-						disableCloseButton: true,
-						disableDefaultAction: true,
-					}, this.keybindingService, this.layoutService, this.hostService)
-				));
-				dialog.show();
-			}
-		});
-
-		signingInDialogRef.dispose();
-
-		if (success) {
-			this.logService.info('[sessions welcome] Sign-in completed successfully');
-			this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
-			this.serviceMarkDone();
-		} else {
-			this.logService.info('[sessions welcome] Sign-in was canceled or failed');
-		}
+		this.logService.info('[sessions welcome] Sign-in skipped');
+		this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
+		this.serviceMarkDone();
 	}
 
 	private async _showWelcomeDialog(): Promise<void> {
