@@ -39,6 +39,8 @@ jobs:
 
       - name: Download built-in extensions
         run: node build/lib/builtInExtensions.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: npm run gulp vscode-linux-x64
@@ -81,6 +83,8 @@ jobs:
 
       - name: Download built-in extensions
         run: node build/lib/builtInExtensions.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: npm run gulp vscode-darwin-arm64
@@ -123,6 +127,8 @@ jobs:
 
       - name: Download built-in extensions
         run: node build/lib/builtInExtensions.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         run: npm run gulp vscode-darwin-x64
@@ -175,6 +181,8 @@ jobs:
       - name: Download built-in extensions
         shell: pwsh
         run: node build/lib/builtInExtensions.ts
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Build
         shell: pwsh
