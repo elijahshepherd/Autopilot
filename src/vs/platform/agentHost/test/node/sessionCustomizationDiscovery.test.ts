@@ -58,6 +58,7 @@ suite('SessionCustomizationDiscovery', () => {
 	}
 
 	test('discovers supported agent instruction files in workspace roots', async () => {
+		const wsAutoInstructions = await seed('/workspace/.github/auto-instructions.md', 'workspace auto instructions');
 		const wsCopilotInstructions = await seed('/workspace/.github/copilot-instructions.md', 'workspace copilot instructions');
 		const wsGeminiInstructions = await seed('/workspace/GEMINI.md', 'workspace gemini instructions');
 
@@ -69,6 +70,7 @@ suite('SessionCustomizationDiscovery', () => {
 			.sort((a, b) => a.localeCompare(b));
 
 		assert.deepStrictEqual(files, [
+			wsAutoInstructions.toString(),
 			wsCopilotInstructions.toString(),
 			wsGeminiInstructions.toString(),
 		].sort((a, b) => a.localeCompare(b)));

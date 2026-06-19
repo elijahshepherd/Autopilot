@@ -148,12 +148,12 @@ const searchRoots: { workspace: ISearchRoot[]; user: ISearchRoot[] } = {
  */
 const agentInstructions: { workspace: IInstructionFile[]; user: IInstructionFile[] } = {
 	workspace: [
-		{ path: ['.github'], filenames: ['copilot-instructions.md'] },
+		{ path: ['.github'], filenames: ['auto-instructions.md', 'copilot-instructions.md'] },
 		{ path: [], filenames: ['AGENTS.md', 'CLAUDE.md', 'GEMINI.md'] },
 		{ path: ['.claude'], filenames: ['CLAUDE.md'] },
 	],
 	user: [
-		{ path: ['.copilot'], filenames: ['copilot-instructions.md'] },
+		{ path: ['.copilot'], filenames: ['auto-instructions.md', 'copilot-instructions.md'] },
 	],
 };
 
