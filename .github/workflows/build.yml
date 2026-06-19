@@ -9,7 +9,7 @@ on:
       - main
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
   linux-x64:
@@ -45,6 +45,7 @@ jobs:
 
       - name: Package build
         run: |
+          ls -la ../VSCode-linux-x64/ | head -5
           mkdir -p downloads
           tar -czf downloads/autopilot-linux-x64.tar.gz -C ../VSCode-linux-x64 .
 
@@ -56,7 +57,7 @@ jobs:
 
   macos-arm64:
     name: macOS ARM64
-    runs-on: macos-14-xlarge
+    runs-on: macos-latest
     env:
       NPM_ARCH: arm64
       VSCODE_ARCH: arm64
@@ -86,6 +87,7 @@ jobs:
 
       - name: Package build
         run: |
+          ls -la ../VSCode-darwin-arm64/ | head -5
           mkdir -p downloads
           ditto -c -k --sequesterRsrc --keepParent ../VSCode-darwin-arm64 downloads/autopilot-darwin-arm64.zip
 
@@ -97,7 +99,7 @@ jobs:
 
   macos-x64:
     name: macOS x64
-    runs-on: macos-13-xlarge
+    runs-on: macos-latest
     env:
       NPM_ARCH: x64
       VSCODE_ARCH: x64
@@ -127,6 +129,7 @@ jobs:
 
       - name: Package build
         run: |
+          ls -la ../VSCode-darwin-x64/ | head -5
           mkdir -p downloads
           ditto -c -k --sequesterRsrc --keepParent ../VSCode-darwin-x64 downloads/autopilot-darwin-x64.zip
 
@@ -180,6 +183,7 @@ jobs:
       - name: Package build
         shell: pwsh
         run: |
+          Get-ChildItem ..\VSCode-win32-x64\ -Name | Select-Object -First 5
           mkdir downloads -Force
           Compress-Archive -Path ..\VSCode-win32-x64\* -DestinationPath downloads\autopilot-win32-x64.zip
 
@@ -188,3 +192,39 @@ jobs:
           name: autopilot-win32-x64
           path: downloads/
           if-no-files-found: error
+
+  release:
+    name: Create Release
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [linux-x64, macos-arm64, macos-x64, windows-x64]
+    runs-on: ubuntu-22.04
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v6
+
+      - name: Download all artifacts
+        uses: actions/download-artifact@v7
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: v0.1.0
+          name: "Autopilot v0.1.0"
+          body: |
+            ## Autopilot v0.1.0 - Initial Release
+
+            First build of Autopilot, a free open-source AI-assisted coding editor.
+
+            ### Downloads
+            - [Linux x64](autopilot-linux-x64.tar.gz)
+            - [macOS ARM64](autopilot-darwin-arm64.zip)
+            - [macOS x64](autopilot-darwin-x64.zip)
+            - [Windows x64](autopilot-win32-x64.zip)
+          files: |
+            autopilot-linux-x64/autopilot-linux-x64.tar.gz
+            autopilot-darwin-arm64/autopilot-darwin-arm64.zip
+            autopilot-darwin-x64/autopilot-darwin-x64.zip
+            autopilot-win32-x64/autopilot-win32-x64.zip
+          draft: true
+          prerelease: false
