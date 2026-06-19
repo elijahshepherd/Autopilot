@@ -1,0 +1,25 @@
+* text=auto eol=lf
+*.bat text eol=crlf
+*.cmd text eol=crlf
+*.ps1 text eol=crlf
+*.sh text eol=lf
+*.svg -text
+*.png -text
+*.jpg -text
+*.gif -text
+*.ico -text
+*.icns -text
+*.otf -text
+*.woff -text
+*.woff2 -text
+*.ttf -text
+*.eot -text
+*.mp3 -text
+*.wav -text
+*.mov -text
+*.mp4 -text
+*.wmv -text
+*.pdf -text
+*.zip -text
+*.tar.gz -text
+*.tgz -text

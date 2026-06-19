@@ -1,27 +1,32 @@
 ---
-name: Bug report
-about: Create a report to help us improve
+name: Bug Report
+about: Report a bug to help us improve
 title: ''
-labels: ''
+labels: bug
 assignees: ''
-
 ---
 
-<!-- ⚠️⚠️ Do Not Delete This! bug_report_template ⚠️⚠️ -->
-<!-- Please read our Rules of Conduct: https://opensource.microsoft.com/codeofconduct/ -->
-<!-- 🕮 Read our guide about submitting issues: https://github.com/microsoft/vscode/wiki/Submitting-Bugs-and-Suggestions -->
-<!-- 🔎 Search existing issues to avoid creating duplicates. -->
-<!-- 🧪 Test using the latest Insiders build to see if your issue has already been fixed: https://code.visualstudio.com/insiders/ -->
-<!-- 💡 Instead of creating your report here, use 'Report Issue' from the 'Help' menu in VS Code to pre-fill useful information. -->
-<!-- 🔧 Launch with `code --disable-extensions` to check. -->
-Does this issue occur when all extensions are disabled?: Yes/No
+**Describe the bug**
+A clear and concise description of what the bug is.
 
-<!-- 🪓 If you answered No above, use 'Help: Start Extension Bisect' from Command Palette to try to identify the cause. -->
-<!-- 📣 Issues caused by an extension need to be reported directly to the extension publisher. The 'Help > Report Issue' dialog can assist with this. -->
-- VS Code Version: 
-- OS Version: 
+**To Reproduce**
+Steps to reproduce the behavior:
+1. Open '...'
+2. Click on '....'
+3. Scroll down to '....'
+4. See error
 
-Steps to Reproduce:
+**Expected behavior**
+A clear and concise description of what you expected to happen.
 
-1. 
-2.
+**Screenshots / Recordings**
+If applicable, add screenshots or screen recordings to help explain your problem.
+
+**Environment (please complete the following information):**
+- OS: [e.g. Windows 11, macOS 14, Ubuntu 22.04]
+- App Version: [e.g. 1.0.0]
+- Download type: [e.g. portable zip, installer, built from source]
+- Architecture: [e.g. x64, ARM64]
+
+**Additional context**
+Add any other context about the problem here.

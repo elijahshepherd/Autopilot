@@ -1,0 +1,190 @@
+name: Build
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+    branches:
+      - main
+
+permissions:
+  contents: read
+
+jobs:
+  linux-x64:
+    name: Linux x64
+    runs-on: ubuntu-22.04
+    env:
+      NPM_ARCH: x64
+      VSCODE_ARCH: x64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install system deps
+        run: |
+          sudo apt update -y
+          sudo apt install -y build-essential pkg-config libx11-dev libx11-xcb-dev libxkbfile-dev libkrb5-dev libsecret-1-dev libnotify-bin libgtk-3-0 libxss1
+
+      - name: Install dependencies
+        run: |
+          for i in 1 2 3 4 5; do npm ci && break; sleep 5; done
+        env:
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+
+      - name: Download built-in extensions
+        run: node build/lib/builtInExtensions.ts
+
+      - name: Build
+        run: npm run gulp vscode-linux-x64
+
+      - name: Package build
+        run: |
+          mkdir -p downloads
+          tar -czf downloads/autopilot-linux-x64.tar.gz -C ../VSCode-linux-x64 .
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: autopilot-linux-x64
+          path: downloads/
+          if-no-files-found: error
+
+  macos-arm64:
+    name: macOS ARM64
+    runs-on: macos-14-xlarge
+    env:
+      NPM_ARCH: arm64
+      VSCODE_ARCH: arm64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --break-system-packages setuptools 2>/dev/null || true
+          for i in 1 2 3 4 5; do npm ci && break; sleep 5; done
+        env:
+          npm_config_arch: arm64
+          VSCODE_ARCH: arm64
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          GYP_DEFINES: "kerberos_use_rtld=false"
+
+      - name: Download built-in extensions
+        run: node build/lib/builtInExtensions.ts
+
+      - name: Build
+        run: npm run gulp vscode-darwin-arm64
+
+      - name: Package build
+        run: |
+          mkdir -p downloads
+          ditto -c -k --sequesterRsrc --keepParent ../VSCode-darwin-arm64 downloads/autopilot-darwin-arm64.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: autopilot-darwin-arm64
+          path: downloads/
+          if-no-files-found: error
+
+  macos-x64:
+    name: macOS x64
+    runs-on: macos-13-xlarge
+    env:
+      NPM_ARCH: x64
+      VSCODE_ARCH: x64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        run: |
+          python3 -m pip install --break-system-packages setuptools 2>/dev/null || true
+          for i in 1 2 3 4 5; do npm ci && break; sleep 5; done
+        env:
+          npm_config_arch: x64
+          VSCODE_ARCH: x64
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          GYP_DEFINES: "kerberos_use_rtld=false"
+
+      - name: Download built-in extensions
+        run: node build/lib/builtInExtensions.ts
+
+      - name: Build
+        run: npm run gulp vscode-darwin-x64
+
+      - name: Package build
+        run: |
+          mkdir -p downloads
+          ditto -c -k --sequesterRsrc --keepParent ../VSCode-darwin-x64 downloads/autopilot-darwin-x64.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: autopilot-darwin-x64
+          path: downloads/
+          if-no-files-found: error
+
+  windows-x64:
+    name: Windows x64
+    runs-on: windows-2022
+    env:
+      NPM_ARCH: x64
+      VSCODE_ARCH: x64
+    steps:
+      - uses: actions/checkout@v6
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install dependencies
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          for ($i = 1; $i -le 5; $i++) {
+            try {
+              npm ci
+              break
+            } catch {
+              if ($i -eq 5) { throw }
+              Write-Host "npm ci failed attempt $i, retrying..."
+              Start-Sleep -Seconds 5
+            }
+          }
+        env:
+          npm_config_arch: x64
+          VSCODE_ARCH: x64
+          ELECTRON_SKIP_BINARY_DOWNLOAD: 1
+          PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+
+      - name: Download built-in extensions
+        shell: pwsh
+        run: node build/lib/builtInExtensions.ts
+
+      - name: Build
+        shell: pwsh
+        run: npm run gulp "vscode-win32-x64"
+
+      - name: Package build
+        shell: pwsh
+        run: |
+          mkdir downloads -Force
+          Compress-Archive -Path ..\VSCode-win32-x64\* -DestinationPath downloads\autopilot-win32-x64.zip
+
+      - uses: actions/upload-artifact@v7
+        with:
+          name: autopilot-win32-x64
+          path: downloads/
+          if-no-files-found: error
