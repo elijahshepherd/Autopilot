@@ -5,20 +5,21 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Autopilot v0.1.0 Downloads</title>
 <style>
-body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; color: #e0e0e0; background: #0d1117; }
-h1 { color: #58a6ff; border-bottom: 1px solid #30363d; padding-bottom: 10px; }
-p { color: #8b949e; }
-.platform { background: #161b22; border: 1px solid #30363d; border-radius: 8px; padding: 16px 20px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; color: #000; background: #fff; }
+h1 { border-bottom: 1px solid #000; padding-bottom: 10px; }
+p { color: #333; }
+.platform { border: 1px solid #000; padding: 16px 20px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
 .platform .name { font-weight: 600; font-size: 16px; }
-.platform .size { color: #8b949e; font-size: 14px; }
-.platform a { background: #238636; color: #fff; padding: 8px 20px; border-radius: 6px; text-decoration: none; font-weight: 500; font-size: 14px; }
-.platform a:hover { background: #2ea043; }
-.note { background: #151b23; border: 1px solid #30363d; border-radius: 8px; padding: 12px 16px; margin-top: 24px; font-size: 13px; color: #8b949e; }
+.platform .size { color: #333; font-size: 14px; }
+.platform a { background: #000; color: #fff; padding: 8px 20px; text-decoration: none; font-weight: 500; font-size: 14px; }
+.platform a:hover { background: #333; }
+.bottom { border: 1px solid #000; padding: 12px 16px; margin-top: 24px; font-size: 13px; background: #f5f5f5; }
+code { background: #eee; padding: 1px 4px; }
 </style>
 </head>
 <body>
 <h1>Autopilot v0.1.0</h1>
-<p>Download the build for your platform. Portable archive — no installer needed.</p>
+<p>Download for your platform. Extract the archive and run.</p>
 
 <div class="platform">
   <div><span class="name">Windows x64</span><br><span class="size">344 MB</span></div>
@@ -26,7 +27,7 @@ p { color: #8b949e; }
 </div>
 
 <div class="platform">
-  <div><span class="name">macOS ARM64</span><br><span class="size">310 MB</span><br><span class="size">Apple Silicon (M1/M2/M3/M4)</span></div>
+  <div><span class="name">macOS ARM64</span><br><span class="size">310 MB</span><br><span class="size">Apple Silicon</span></div>
   <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.1.0/autopilot-darwin-arm64.zip" download>Download</a>
 </div>
 
@@ -40,12 +41,12 @@ p { color: #8b949e; }
   <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.1.0/autopilot-linux-x64.tar.gz" download>Download</a>
 </div>
 
-<div class="note">
-  <strong>How to use:</strong><br>
-  <strong>Windows:</strong> Extract the zip, double-click <code>Autopilot.exe</code><br>
-  <strong>macOS:</strong> Extract the zip, open <code>Autopilot.app</code><br>
-  <strong>Linux:</strong> <code>tar -xzf autopilot-linux-x64.tar.gz && ./autopilot</code><br><br>
-  These are unsigned portable builds — Windows SmartScreen may flag the executable.
+<div class="bottom">
+  <strong>How to use</strong><br>
+  Windows: Extract the zip, double-click <code>Autopilot.exe</code><br>
+  macOS: Extract the zip, open <code>Autopilot.app</code><br>
+  Linux: <code>tar -xzf autopilot-linux-x64.tar.gz && ./autopilot</code><br><br>
+  These are unsigned portable builds. Windows SmartScreen may flag the executable.
 </div>
 </body>
 </html>
