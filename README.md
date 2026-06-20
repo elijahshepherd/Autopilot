@@ -6,6 +6,12 @@ This repository is where we develop **Autopilot**, an open-source editor focused
 
 This source code is built upon the foundation of [microsoft/vscode](https://github.com/microsoft/vscode) and is available to everyone under the standard [MIT license](LICENSE.txt).
 
+## Why Autopilot?
+
+Autopilot was built from the ground up with AI agents at its core. Unlike Visual Studio Code, where AI features are optional add-ons, Autopilot always operates in BYOK mode inside the Agents window. You bring your own keys from any provider, and the AI works for you without restrictions or usage limits.
+
+The engine that handles your AI requests is optimized for speed. Tasks that might take hours elsewhere can be completed in a single coffee break. We've re-architected the request pipeline to be lean and responsive, so you spend less time waiting and more time getting work done.
+
 ## Autopilot
 
 Autopilot uses the same format as VS Code - an IDE for file and folder editing with extensions support - but with a twist: it includes **Auto**, a purpose-built AI agent designed to do the work for you.
@@ -27,14 +33,13 @@ Users can pick AI permissions to give the AI more or less freedom:
 
 ### Features
 
-- Comprehensive code editing, navigation, and understanding support
-- Lightweight debugging
-- Rich extensibility model via extensions
-- Built-in terminal integration
-- AI-powered assistance via Auto - the built-in agent
-- Dedicated Agent window for AI-first workflows
-- BYOK support: use any AI provider, no limits
-- Cross-platform: Windows, macOS, and Linux
+- **Always BYOK**: Unlike other editors, Autopilot's Agents window always operates in Bring Your Own Key mode. Use your own API keys from OpenAI, Anthropic, or any provider. No subscriptions, no usage caps, no vendor lock-in.
+- **Blazing fast response times**: We've optimized the entire AI request pipeline to be significantly faster than typical implementations. Get results in minutes, not hours. Complete complex tasks during a single coffee break.
+- **Auto - the built-in agent**: A purpose-built AI agent that handles coding tasks autonomously. It reads your codebase, makes changes, runs commands, and explains its work.
+- **Dedicated Agent window**: A separate, focused window for AI-driven work. No IDE clutter, just the agent and your tasks.
+- **Flexible permission levels**: Choose from Strict, Non-Strict, Bypass, or Takeoff modes to control how much autonomy the AI has.
+- **Full VS Code compatibility**: All your favorite extensions, themes, and workflows work out of the box.
+- **Cross-platform**: Runs on Windows, macOS, and Linux.
 
 ## Issue Reporting
 
