@@ -219,13 +219,16 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.4.1
-          name: "Autopilot v0.4.1"
+          tag_name: v0.5.0
+          name: "Autopilot v0.5.0"
           body: |
-            ## Autopilot v0.4.1
+            ## Autopilot v0.5.0
 
-            ### Fix
-            - Stop routing chat requests through GitHub CAPI when no Copilot token is available. Autopilot now runs in "local-only" mode automatically when local providers are configured (env vars or ~/.autopilot/providers.json). The Copilot main chat provider is bypassed so users see only models that won't return "Server error: 500".
+            ### Changes
+            - **Fix "Server error: 500"**: Autopilot now detects local-only mode and forwards ALL chat requests through `LocalLanguageModelProvider`, bypassing CAPI entirely. The Copilot main provider still registers the same vendor but the actual request path skips CAPI and tool injection — direct HTTP to the user's endpoint with a clean OpenAI-compatible body.
+            - Hide the Copilot Free / quota tooltip button on the bottom right when a local provider is configured.
+            - Hide the Extensions button on the activity bar (left rail).
+            - Models registered by `LocalLanguageModelProvider` are served via the in-chat picker using the `copilot` vendor, so the existing UI picks them up without changes.
 
             ### Downloads
             - [Linux x64](autopilot-linux-x64.tar.gz)

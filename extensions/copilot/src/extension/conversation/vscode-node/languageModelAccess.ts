@@ -225,6 +225,7 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 	private readonly _resolvedUtilityEndpoints = new Map<ChatEndpointFamily, { endpoint: IChatEndpoint; baseCount: number }>();
 	private _lmWrapper: CopilotLanguageModelWrapper;
 	private _promptBaseCountCache: LanguageModelAccessPromptBaseCountCache;
+	private _localProvider?: LocalLanguageModelProvider;
 
 	constructor(
 		@ILogService private readonly _logService: ILogService,
@@ -292,9 +293,11 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 	}
 
 	private async _registerLocalProvider(): Promise<void> {
-		const localProvider = new LocalLanguageModelProvider();
-		this._register(vscode.lm.registerLanguageModelChatProvider('local', localProvider));
-		this._register(localProvider);
+		if (!this._localProvider) {
+			this._localProvider = new LocalLanguageModelProvider();
+			this._register(this._localProvider);
+		}
+		this._register(vscode.lm.registerLanguageModelChatProvider('local', this._localProvider));
 	}
 
 	/** True if the user has any Copilot authentication token source. */
@@ -341,12 +344,16 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 	private _emittedLocalOnlyLog: boolean = false;
 
 	private async _provideLanguageModelChatInfo(options: { silent: boolean }, token: vscode.CancellationToken): Promise<vscode.LanguageModelChatInformation[]> {
-		// Autopilot: return no copilot main models in local-only mode so the user
-		// only sees models from LocalLanguageModelProvider (which never routes through CAPI).
+		// Autopilot: in local-only mode, expose the local provider's models under
+		// the 'copilot' vendor so the existing picker UI works. The actual
+		// requests are forwarded in _provideLanguageModelChatResponse.
 		if (this._autopilotLocalOnlyMode) {
 			if (!this._emittedLocalOnlyLog) {
-				this._logService.info('[Autopilot] Local-only mode active: skipping CAPI-backed models. Configure via env vars (OPENAI_API_KEY, ANTHROPIC_API_KEY) or ~/.autopilot/providers.json');
+				this._logService.info('[Autopilot] Local-only mode active: serving local provider models under the copilot vendor. Configure via env vars (OPENAI_API_KEY, ANTHROPIC_API_KEY) or ~/.autopilot/providers.json');
 				this._emittedLocalOnlyLog = true;
+			}
+			if (this._localProvider) {
+				return this._localProvider.provideLanguageModelChatInformation(options, token);
 			}
 			return [];
 		}
@@ -550,13 +557,17 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		if (model.id === AutoChatEndpoint.pseudoModelId) {
 			// Autopilot: never route Auto mode through CAPI in local-only mode.
 			if (this._autopilotLocalOnlyMode) {
-				throw new Error('Auto mode is unavailable without Copilot. Pick a local model from the model picker.');
+				throw new Error('Auto mode is unavailable without Copilot. Pick a Local model from the model picker.');
 			}
 			const allEndpoints = await this._endpointProvider.getAllChatEndpoints();
 			if (!allEndpoints.length) {
 				return undefined;
 			}
 			return await this._automodeService.resolveAutoModeEndpoint(undefined, allEndpoints);
+		}
+		// Autopilot: in local-only mode, refuse any non-Local model lookup that would route through CAPI.
+		if (this._autopilotLocalOnlyMode) {
+			throw new Error(`Autopilot is in local-only mode. Copilot model "${model.id}" cannot be resolved. Pick a Local model.`);
 		}
 		const aliasEndpoint = this._utilityAliasEndpoints.get(model.id);
 		if (aliasEndpoint) {
@@ -572,6 +583,22 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		progress: vscode.Progress<vscode.LanguageModelResponsePart2>,
 		token: vscode.CancellationToken
 	): Promise<void> {
+		// Autopilot: in local-only mode, route ALL requests through the local
+		// provider — never let them reach CAPI or the Copilot main pipeline.
+		// This avoids the "Server error: 500" caused by Copilot injecting huge
+		// tool/system prompts into requests that don't fit the user's endpoint
+		// (e.g. NVIDIA NIM). The local provider strips tools and sends a clean
+		// OpenAI-compatible request directly.
+		if (this._autopilotLocalOnlyMode && this._localProvider) {
+			// If the model id is a Copilot one (cached selection), fall through
+			// to throw so the user sees a clear message asking them to pick a Local model.
+			const id = model.id || '';
+			if (!id.toLowerCase().startsWith('local/')) {
+				throw new Error(`Autopilot is in local-only mode and this model (${id}) is not a Local model. Pick a model from the "Local" vendor in the model picker, or run Autopilot with a Copilot subscription to use Copilot main models.`);
+			}
+			return this._localProvider.provideLanguageModelChatResponse(model, messages as any, options, progress as any, token);
+		}
+
 		let endpoint = await this._getEndpointForModel(model);
 		if (!endpoint) {
 			throw new Error(`Endpoint not found for model ${model.id}`);
@@ -594,6 +621,11 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		text: string | vscode.LanguageModelChatMessage | vscode.LanguageModelChatMessage2,
 		token: vscode.CancellationToken
 	): Promise<number> {
+		// Autopilot: in local-only mode, route token counting through the local provider too.
+		if (this._autopilotLocalOnlyMode && this._localProvider) {
+			return this._localProvider.provideTokenCount(model, text, token);
+		}
+
 		const endpoint = await this._getEndpointForModel(model);
 		if (!endpoint) {
 			throw new Error(`Endpoint not found for model ${model.id}`);
