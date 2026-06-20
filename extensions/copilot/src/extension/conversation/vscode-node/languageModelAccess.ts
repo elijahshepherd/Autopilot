@@ -246,6 +246,12 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			return;
 		}
 
+		// Autopilot: detect local-only mode — if user has a local provider configured
+		// (env vars, providers.json, or running Ollama) AND no Copilot auth,
+		// bypass CAPI entirely. This prevents the "Server error: 500" that would
+		// otherwise come from selecting CAPI-routed Copilot models in our fork.
+		this._autopilotLocalOnlyMode = !this._hasCopilotAuth() && this._hasAnyLocalProvider();
+
 		// initial
 		this.activationBlocker = Promise.all([
 			this._registerChatProvider(),
@@ -291,7 +297,60 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		this._register(localProvider);
 	}
 
+	/** True if the user has any Copilot authentication token source. */
+	private _hasCopilotAuth(): boolean {
+		try {
+			return !!this._authenticationService?.anyGitHubSession ||
+				!!this._authenticationService?.copilotToken;
+		} catch {
+			return false;
+		}
+	}
+
+	/** True if the user has set up any local model provider (env vars, providers.json, etc.). */
+	private _hasAnyLocalProvider(): boolean {
+		try {
+			if (process.env.OPENAI_API_KEY?.trim() || process.env.ANTHROPIC_API_KEY?.trim()) {
+				return true;
+			}
+			const os = require('os');
+			const fs = require('fs');
+			const path = require('path');
+			const candidates = [
+				path.join(os.homedir(), '.autopilot', 'providers.json'),
+				path.join(os.homedir(), '.config', 'autopilot', 'providers.json'),
+			];
+			for (const p of candidates) {
+				try {
+					if (fs.existsSync(p)) return true;
+				} catch { /* ignore */ }
+			}
+			// Always assume Ollama might be running (don't gate on detection)
+			return true;
+		} catch {
+			return true; // local mode is safer default
+		}
+	}
+
+	/**
+	 * Autopilot local-only mode: skip the CAPI-backed copilot provider entirely
+	 * so users only see local models in the picker. Prevents the 500 error from
+	 * hitting CAPI when there is no Copilot auth.
+	 */
+	private _autopilotLocalOnlyMode: boolean = false;
+	private _emittedLocalOnlyLog: boolean = false;
+
 	private async _provideLanguageModelChatInfo(options: { silent: boolean }, token: vscode.CancellationToken): Promise<vscode.LanguageModelChatInformation[]> {
+		// Autopilot: return no copilot main models in local-only mode so the user
+		// only sees models from LocalLanguageModelProvider (which never routes through CAPI).
+		if (this._autopilotLocalOnlyMode) {
+			if (!this._emittedLocalOnlyLog) {
+				this._logService.info('[Autopilot] Local-only mode active: skipping CAPI-backed models. Configure via env vars (OPENAI_API_KEY, ANTHROPIC_API_KEY) or ~/.autopilot/providers.json');
+				this._emittedLocalOnlyLog = true;
+			}
+			return [];
+		}
+
 		const session = await this._getToken();
 		if (!session) {
 			// Return cached models until we have auth reacquired
@@ -489,6 +548,10 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 
 	private async _getEndpointForModel(model: vscode.LanguageModelChatInformation) {
 		if (model.id === AutoChatEndpoint.pseudoModelId) {
+			// Autopilot: never route Auto mode through CAPI in local-only mode.
+			if (this._autopilotLocalOnlyMode) {
+				throw new Error('Auto mode is unavailable without Copilot. Pick a local model from the model picker.');
+			}
 			const allEndpoints = await this._endpointProvider.getAllChatEndpoints();
 			if (!allEndpoints.length) {
 				return undefined;
