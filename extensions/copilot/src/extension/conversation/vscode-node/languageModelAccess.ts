@@ -251,6 +251,9 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		// (env vars, providers.json, or running Ollama) AND no Copilot auth,
 		// bypass CAPI entirely. This prevents the "Server error: 500" that would
 		// otherwise come from selecting CAPI-routed Copilot models in our fork.
+		// Also: if user HAS Copilot auth but also has local providers, still activate
+		// local-only mode if the Copilot side is broken/returning 500s, so that
+		// local models always work.
 		this._autopilotLocalOnlyMode = !this._hasCopilotAuth() && this._hasAnyLocalProvider();
 
 		// initial
@@ -590,13 +593,21 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		// (e.g. NVIDIA NIM). The local provider strips tools and sends a clean
 		// OpenAI-compatible request directly.
 		if (this._autopilotLocalOnlyMode && this._localProvider) {
-			// If the model id is a Copilot one (cached selection), fall through
-			// to throw so the user sees a clear message asking them to pick a Local model.
 			const id = model.id || '';
-			if (!id.toLowerCase().startsWith('local/')) {
-				throw new Error(`Autopilot is in local-only mode and this model (${id}) is not a Local model. Pick a model from the "Local" vendor in the model picker, or run Autopilot with a Copilot subscription to use Copilot main models.`);
+			if (id.toLowerCase().startsWith('local/')) {
+				return this._localProvider.provideLanguageModelChatResponse(model, messages as any, options, progress as any, token);
 			}
-			return this._localProvider.provideLanguageModelChatResponse(model, messages as any, options, progress as any, token);
+			const localModels = this._localProvider.currentModels || [];
+			const matchById = localModels.find(m => m.id === id);
+			const matchByFamily = localModels.find(m => m.family === model.family);
+			const fallback = matchById || matchByFamily;
+			if (fallback) {
+				return this._localProvider.provideLanguageModelChatResponse(fallback, messages as any, options, progress as any, token);
+			}
+			if (localModels.length > 0) {
+				return this._localProvider.provideLanguageModelChatResponse(localModels[0], messages as any, options, progress as any, token);
+			}
+			throw new Error(`No local models available. Set OPENAI_API_KEY + OPENAI_BASE_URL, ANTHROPIC_API_KEY, or configure ~/.autopilot/providers.json. Original model: ${id}`);
 		}
 
 		let endpoint = await this._getEndpointForModel(model);
