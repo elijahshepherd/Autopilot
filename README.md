@@ -8,7 +8,7 @@ This source code is built upon the foundation of [microsoft/vscode](https://gith
 
 ## Why Autopilot?
 
-Autopilot was built from the ground up with AI agents at its core. Unlike Visual Studio Code, where AI features are optional add-ons, Autopilot always operates in BYOK mode inside the Agents window. You bring your own keys from any provider, and the AI works for you without restrictions or usage limits.
+Autopilot was built from the ground up with AI agents at its core. Unlike Visual Studio Code, where AI features are optional add-ons, Autopilot always operates in BYOK mode inside the Agents window (and sidebar). You bring your own keys from any provider, and the AI works for you without restrictions or usage limits.
 
 The engine that handles your AI requests is optimized for speed. Tasks that might take hours elsewhere can be completed in a single coffee break. We've re-architected the request pipeline to be lean and responsive, so you spend less time waiting and more time getting work done.
 
