@@ -331,11 +331,8 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 					if (fs.existsSync(p)) return true;
 				} catch { /* ignore */ }
 			}
-			// Always assume Ollama might be running (don't gate on detection)
-			return true;
-		} catch {
-			return true; // local mode is safer default
-		}
+		} catch { /* ignore */ }
+		return false;
 	}
 
 	/**
@@ -586,21 +583,23 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 		progress: vscode.Progress<vscode.LanguageModelResponsePart2>,
 		token: vscode.CancellationToken
 	): Promise<void> {
-		// Autopilot: in local-only mode, route ALL requests through the local
-		// provider — never let them reach CAPI or the Copilot main pipeline.
-		// This avoids the "Server error: 500" caused by Copilot injecting huge
-		// tool/system prompts into requests that don't fit the user's endpoint
-		// (e.g. NVIDIA NIM). The local provider strips tools and sends a clean
-		// OpenAI-compatible request directly.
+		const id = model.id || '';
+
+		// Autopilot: local model IDs (local/...) are ALWAYS routed through the
+		// local provider, even if the user also has Copilot auth. This prevents
+		// CAPI from intercepting local model requests and returning 500.
+		if (id.toLowerCase().startsWith('local/') && this._localProvider) {
+			return this._localProvider.provideLanguageModelChatResponse(model, messages as any, options, progress as any, token);
+		}
+
+		// Autopilot: in local-only mode (no Copilot auth + local providers exist),
+		// route ALL non-local requests through the local provider too — never let
+		// them reach CAPI. This avoids "Server error: 500" from CAPI when there
+		// is no valid Copilot session.
 		if (this._autopilotLocalOnlyMode && this._localProvider) {
-			const id = model.id || '';
-			if (id.toLowerCase().startsWith('local/')) {
-				return this._localProvider.provideLanguageModelChatResponse(model, messages as any, options, progress as any, token);
-			}
 			const localModels = this._localProvider.currentModels || [];
-			const matchById = localModels.find(m => m.id === id);
 			const matchByFamily = localModels.find(m => m.family === model.family);
-			const fallback = matchById || matchByFamily;
+			const fallback = matchByFamily;
 			if (fallback) {
 				return this._localProvider.provideLanguageModelChatResponse(fallback, messages as any, options, progress as any, token);
 			}
@@ -610,21 +609,41 @@ export class LanguageModelAccess extends Disposable implements IExtensionContrib
 			throw new Error(`No local models available. Set OPENAI_API_KEY + OPENAI_BASE_URL, ANTHROPIC_API_KEY, or configure ~/.autopilot/providers.json. Original model: ${id}`);
 		}
 
-		let endpoint = await this._getEndpointForModel(model);
-		if (!endpoint) {
-			throw new Error(`Endpoint not found for model ${model.id}`);
-		}
+		// Autopilot: user has Copilot auth, so try CAPI first, but if it fails
+		// with "Server error: 5xx" and a local provider is available, fall back
+		// to the local provider instead of showing the error to the user.
+		try {
+			let endpoint = await this._getEndpointForModel(model);
+			if (!endpoint) {
+				throw new Error(`Endpoint not found for model ${model.id}`);
+			}
 
-		// Apply context size override if configured
-		const contextSize = options.modelConfiguration?.contextSize;
-		if (typeof contextSize === 'number' && contextSize < endpoint.modelMaxPromptTokens) {
-			endpoint = endpoint.cloneWithTokenOverride(contextSize);
-		}
+			const contextSize = options.modelConfiguration?.contextSize;
+			if (typeof contextSize === 'number' && contextSize < endpoint.modelMaxPromptTokens) {
+				endpoint = endpoint.cloneWithTokenOverride(contextSize);
+			}
 
-		return this._lmWrapper.provideLanguageModelResponse(endpoint, messages, {
-			...options,
-			modelOptions: options.modelOptions
-		}, options.requestInitiator, progress, token);
+			return await this._lmWrapper.provideLanguageModelResponse(endpoint, messages, {
+				...options,
+				modelOptions: options.modelOptions
+			}, options.requestInitiator, progress, token);
+		} catch (err: any) {
+			const msg = String(err?.message || err || '');
+			const isServerError = /Server error[:\s]\d{3}/.test(msg) || /process exited with code/i.test(msg);
+			const isCapiFailure = isServerError || err?.name === 'Blocked' || err?.code === 'Blocked';
+			if (isCapiFailure && this._localProvider) {
+				this._autopilotLocalOnlyMode = true;
+				this._logService.info(`[Autopilot] CAPI request failed ("${msg}"), switching to local-only mode`);
+				const localModels = this._localProvider.currentModels || [];
+				if (localModels.length > 0) {
+					const matchByFamily = localModels.find(m => m.family === model.family);
+					const fallback = matchByFamily || localModels[0];
+					this._logService.info(`[Autopilot] Falling back to local model: ${fallback.id}`);
+					return this._localProvider.provideLanguageModelChatResponse(fallback, messages as any, options, progress as any, token);
+				}
+			}
+			throw err;
+		}
 	}
 
 	private async _provideTokenCount(

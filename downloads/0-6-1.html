@@ -1,0 +1,57 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot v0.6.1 Downloads</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; color: #000; background: #fff; }
+h1 { border-bottom: 1px solid #000; padding-bottom: 10px; }
+p { color: #333; }
+.platform { border: 1px solid #000; padding: 16px 20px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.platform .name { font-weight: 600; font-size: 16px; }
+.platform .size { color: #333; font-size: 14px; }
+.platform a { background: #000; color: #fff; padding: 8px 20px; text-decoration: none; font-weight: 500; font-size: 14px; }
+.platform a:hover { background: #333; }
+.bottom { border: 1px solid #000; padding: 12px 16px; margin-top: 24px; font-size: 13px; background: #f5f5f5; }
+code { background: #eee; padding: 1px 4px; }
+.fix { background: #fffbe6; border-left: 4px solid #b08600; padding: 8px 12px; margin: 12px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>Autopilot v0.6.1</h1>
+<div class="fix"><strong>Fix:</strong> &ldquo;Server error: 500&rdquo; now triggers automatic fallback to your local model provider. In v0.6.0, the bypass only worked when you had <em>no</em> Copilot auth &mdash; if you were signed into Copilot but CAPI returned 500 (or blocked the request), you still saw the error. Now <code>local/</code> models always go through the local provider, and any CAPI failure auto-switches the session to local-only mode.</div>
+
+<p>Download for your platform. Extract the archive and run.</p>
+
+<div class="platform">
+  <div><span class="name">Windows x64</span><br><span class="size">344 MB</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.6.1/autopilot-win32-x64.zip" download>Download</a>
+</div>
+
+<div class="platform">
+  <div><span class="name">macOS ARM64</span><br><span class="size">310 MB</span><br><span class="size">Apple Silicon</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.6.1/autopilot-darwin-arm64.zip" download>Download</a>
+</div>
+
+<div class="platform">
+  <div><span class="name">macOS x64</span><br><span class="size">319 MB</span><br><span class="size">Intel Macs</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.6.1/autopilot-darwin-x64.zip" download>Download</a>
+</div>
+
+<div class="platform">
+  <div><span class="name">Linux x64</span><br><span class="size">311 MB</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.6.1/autopilot-linux-x64.tar.gz" download>Download</a>
+</div>
+
+<div class="bottom">
+  <strong>How to use</strong><br>
+  Windows: Extract the zip, double-click <code>Autopilot.exe</code><br>
+  macOS: Extract the zip, open <code>Autopilot.app</code><br>
+  Linux: <code>tar -xzf autopilot-linux-x64.tar.gz && ./autopilot</code><br><br>
+  <strong>Models</strong><br>
+  Ollama auto-detected on localhost:11434. Set <code>OPENAI_API_KEY</code> and <code>OPENAI_BASE_URL</code> (defaults to https://api.openai.com/v1) for any OpenAI-compatible endpoint including NVIDIA NIM. Set <code>ANTHROPIC_API_KEY</code> for Anthropic. Or drop a JSON config at <code>~/.autopilot/providers.json</code>.<br><br>
+  These are unsigned portable builds. Windows SmartScreen may flag the executable.
+</div>
+</body>
+</html>
