@@ -58,6 +58,8 @@ export interface IEditTelemetryBaseData {
 	| 'custom'
 	/** Applying a previously suggested code block */
 	| 'applyCodeBlock'
+	/** Debug mode for diagnosing and fixing issues */
+	| 'debug'
 	| undefined;
 	applyCodeBlockSuggestionId: EditSuggestionId | undefined; // Is set if modeId is applyCodeBlock
 

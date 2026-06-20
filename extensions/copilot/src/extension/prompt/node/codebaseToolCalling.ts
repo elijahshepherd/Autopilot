@@ -57,11 +57,19 @@ export class CodebaseToolCallingLoop extends ToolCallingLoop<ICodebaseToolCallin
 	}
 
 	private async getEndpoint(request: ChatRequest) {
-		let endpoint = await this.endpointProvider.getChatEndpoint(this.options.request);
-		if (!endpoint.supportsToolCalls) {
-			endpoint = await this.endpointProvider.getChatEndpoint('copilot-utility');
+		try {
+			let endpoint = await this.endpointProvider.getChatEndpoint(this.options.request);
+			if (!endpoint.supportsToolCalls) {
+				endpoint = await this.endpointProvider.getChatEndpoint('copilot-utility');
+			}
+			return endpoint;
+		} catch (e) {
+			const localModels = await import('vscode').then(vs => vs.lm.selectChatModels({ vendor: 'local' }));
+			if (localModels.length > 0) {
+				return this.endpointProvider.getChatEndpoint(localModels[0]);
+			}
+			throw e;
 		}
-		return endpoint;
 	}
 
 	protected async buildPrompt(buildPromptContext: IBuildPromptContext, progress: Progress<ChatResponseReferencePart | ChatResponseProgressPart>, token: CancellationToken): Promise<IBuildPromptResult> {

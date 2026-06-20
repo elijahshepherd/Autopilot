@@ -305,13 +305,42 @@ export class NativeHostMainService extends Disposable implements INativeHostMain
 	}
 
 	async openAgentsWindow(windowId: number | undefined, options?: { folderUri?: UriComponents; sessionResource?: UriComponents }): Promise<void> {
-		const windows = await this.windowsMainService.openAgentsWindow({
-			context: OpenContext.API,
-			contextWindowId: windowId,
-			cli: this.environmentMainService.args,
-		}, options?.folderUri ? URI.revive(options.folderUri) : undefined, options?.sessionResource ? URI.revive(options.sessionResource) : undefined);
-		if (windows.length > 0) {
-			windows[0].focus();
+		const { execFile, spawn } = await import('child_process');
+		const exePath = process.execPath;
+		const args: string[] = ['--agents'];
+		// Share user data dir with the editor so the Agents window can see
+		// sessions from the same profile/storage.
+		args.push('--user-data-dir', this.environmentMainService.userDataPath);
+		if (options?.folderUri) {
+			args.push('--folder-uri', URI.revive(options.folderUri).toString());
+		}
+		if (options?.sessionResource) {
+			args.push('--session-resource', URI.revive(options.sessionResource).toString());
+		}
+		try {
+			// On Windows we need admin elevation (the agents window runs
+			// workspace tools that may need elevated privileges). Use
+			// `runas` verb via ShellExecute which spawns a new process
+			// with the array of args preserved.
+			const escapedArgs = args.map(a => `'${a.replace(/'/g, "''")}'`).join(',');
+			execFile('powershell.exe', [
+				'-NoProfile',
+				'-Command',
+				`$proc = Start-Process -FilePath '${exePath.replace(/'/g, "''")}' -ArgumentList @(${escapedArgs}) -Verb RunAs -PassThru; if ($proc) { [Console]::Write($proc.Id) }`
+			], (err) => {
+				if (err) {
+					this.logService.error('[Autopilot] Failed to spawn elevated Agents Window:', err);
+					// Fallback: spawn the process directly without elevation
+					// (still a separate process, but not admin).
+					try {
+						spawn(exePath, args, { detached: true, stdio: 'ignore' }).unref();
+					} catch (fallbackErr) {
+						this.logService.error('[Autopilot] Fallback spawn also failed:', fallbackErr);
+					}
+				}
+			});
+		} catch (err) {
+			this.logService.error('[Autopilot] Failed to spawn elevated Agents Window:', err);
 		}
 	}
 

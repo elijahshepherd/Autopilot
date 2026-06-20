@@ -170,6 +170,7 @@
 	"copilot.title": "Build with Agent",
 	"copilot.edits.description": "Edit files in your workspace",
 	"copilot.agent.description": "Edit files in your workspace in agent mode",
+	"copilot.debug.description": "Diagnose and fix issues across your workspace",
 	"copilot.agent.compact.description": "Free up context by compacting the conversation history. Optionally include extra instructions for compaction.",
 	"github.copilot.command.sessionSync.deleteSessions": "Delete Session Sync Data",
 	"github.copilot.command.chronicle.reindex": "Reindex Sessions",

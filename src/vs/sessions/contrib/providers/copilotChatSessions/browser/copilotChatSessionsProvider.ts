@@ -2077,7 +2077,7 @@ export class CopilotChatSessionsProvider extends Disposable implements ISessions
 		// Resolve mode
 		const modeKind = session.chatMode?.kind ?? ChatModeKind.Agent;
 		const modeIsBuiltin = session.chatMode ? isBuiltinChatMode(session.chatMode) : true;
-		const modeId: 'ask' | 'agent' | 'edit' | 'custom' | undefined = modeIsBuiltin ? modeKind : 'custom';
+		const modeId: 'ask' | 'agent' | 'edit' | 'debug' | 'custom' | undefined = modeIsBuiltin ? modeKind : 'custom';
 
 		const rawModeInstructions = session.chatMode?.modeInstructions?.get();
 		const modeInstructions = rawModeInstructions ? {

@@ -13,6 +13,7 @@ import { ISessionsProvidersService } from '../../../services/sessions/browser/se
 import { IViewsService } from '../../../../workbench/services/views/common/viewsService.js';
 import { ILifecycleService, LifecyclePhase } from '../../../../workbench/services/lifecycle/common/lifecycle.js';
 import { ILogService } from '../../../../platform/log/common/log.js';
+import { IWorkbenchEnvironmentService } from '../../../../workbench/services/environment/common/environmentService.js';
 import { SessionsView, SessionsViewId as SessionsListViewId } from '../../sessions/browser/views/sessionsView.js';
 import { ISessionsSetUpService } from '../../../browser/sessionsSetUpService.js';
 import { ISessionsPartService } from '../../../services/sessions/browser/sessionsPartService.js';
@@ -31,6 +32,7 @@ class SelectAgentsFolderContribution extends Disposable implements IWorkbenchCon
 		@ISessionsSetUpService private readonly sessionsSetUpService: ISessionsSetUpService,
 		@ILogService private readonly logService: ILogService,
 		@ISessionsPartService private readonly sessionsPartService: ISessionsPartService,
+		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 	) {
 		super();
 		const handleSelectAgentsFolder = (_: unknown, ...args: unknown[]) => {
@@ -43,6 +45,23 @@ class SelectAgentsFolderContribution extends Disposable implements IWorkbenchCon
 		};
 		ipcRenderer.on('vscode:selectAgentsFolder', handleSelectAgentsFolder);
 		this._register({ dispose: () => ipcRenderer.removeListener('vscode:selectAgentsFolder', handleSelectAgentsFolder) });
+
+		// Autopilot: when launched as a separate EXE with --session-resource,
+		// read it from CLI args since the IPC event won't fire.
+		const envArgs = (this.environmentService as IWorkbenchEnvironmentService & { args?: Record<string, unknown> }).args;
+		const sessionResourceArg = envArgs?.['session-resource'];
+		if (typeof sessionResourceArg === 'string' && sessionResourceArg.length > 0) {
+			this.logService.info(`[AgentsHandoff] --session-resource from CLI: ${sessionResourceArg}`);
+			try {
+				const sessionResource = URI.parse(sessionResourceArg);
+				this.lifecycleService.when(LifecyclePhase.Eventually).then(() => {
+					this.handleOpenIntent(undefined, sessionResource)
+						.catch(err => this.logService.error('[AgentsHandoff] CLI session-resource open failed', err));
+				});
+			} catch (err) {
+				this.logService.error(`[AgentsHandoff] Failed to parse --session-resource: ${sessionResourceArg}`, err);
+			}
+		}
 	}
 
 	private async handleOpenIntent(folderUri: URI | undefined, sessionResource: URI | undefined): Promise<void> {

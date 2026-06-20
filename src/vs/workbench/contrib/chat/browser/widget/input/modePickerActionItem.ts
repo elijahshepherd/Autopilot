@@ -52,6 +52,7 @@ const builtinDefaultIcon = (mode: IChatMode) => {
 	switch (mode.name.get().toLowerCase()) {
 		case 'ask': return Codicon.ask;
 		case 'plan': return Codicon.tasklist;
+		case 'debug': return Codicon.debug;
 		default: return undefined;
 	}
 };

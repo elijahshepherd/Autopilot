@@ -98,40 +98,44 @@ export class ProductionEndpointProvider extends Disposable implements IEndpointP
 	async getChatEndpoint(requestOrFamilyOrModel: LanguageModelChat | ChatRequest | ChatModelFamily): Promise<IChatEndpoint> {
 		this._logService.trace(`Resolving chat model`);
 
-		if (typeof requestOrFamilyOrModel === 'string') {
-			return this._resolveFamily(requestOrFamilyOrModel);
-		}
+		try {
+			if (typeof requestOrFamilyOrModel === 'string') {
+				return await this._resolveFamily(requestOrFamilyOrModel);
+			}
 
-		const model = 'model' in requestOrFamilyOrModel ? requestOrFamilyOrModel.model : requestOrFamilyOrModel;
+			const model = 'model' in requestOrFamilyOrModel ? requestOrFamilyOrModel.model : requestOrFamilyOrModel;
 
-		if (!model) {
-			return this.getChatEndpoint('copilot-utility');
-		}
-
-		if (model.vendor !== 'copilot') {
-			return this._instantiationService.createInstance(ExtensionContributedChatEndpoint, model);
-		}
-
-		if (model.id === AutoChatEndpoint.pseudoModelId) {
-			try {
-				const allEndpoints = await this.getAllChatEndpoints();
-				return this._autoModeService.resolveAutoModeEndpoint(requestOrFamilyOrModel as ChatRequest, allEndpoints);
-			} catch {
+			if (!model) {
 				return this.getChatEndpoint('copilot-utility');
 			}
-		}
 
-		// Utility-family aliases (published by LanguageModelAccess under the copilot vendor)
-		// have synthetic ids that don't map to any real CAPI model, so the lookup below
-		// would silently fall back to `copilot-utility`. Route them through the family
-		// resolver so the chat-participant path matches direct `getChatEndpoint(family)` callers.
-		if (model.id === 'copilot-utility-small' || model.id === 'copilot-utility') {
-			return this.getChatEndpoint(model.id);
-		}
+			if (model.vendor !== 'copilot') {
+				return this._instantiationService.createInstance(ExtensionContributedChatEndpoint, model);
+			}
 
-		const modelMetadata = await this._modelFetcher.getChatModelFromApiModel(model);
-		// If we fail to resolve a model since this is panel we give copilot utility. This really should never happen as the picker is powered by the same service.
-		return modelMetadata ? this.getOrCreateChatEndpointInstance(modelMetadata) : this.getChatEndpoint('copilot-utility');
+			if (model.id === AutoChatEndpoint.pseudoModelId) {
+				try {
+					const allEndpoints = await this.getAllChatEndpoints();
+					return this._autoModeService.resolveAutoModeEndpoint(requestOrFamilyOrModel as ChatRequest, allEndpoints);
+				} catch {
+					return this.getChatEndpoint('copilot-utility');
+				}
+			}
+
+			if (model.id === 'copilot-utility-small' || model.id === 'copilot-utility') {
+				return this.getChatEndpoint(model.id);
+			}
+
+			const modelMetadata = await this._modelFetcher.getChatModelFromApiModel(model);
+			return modelMetadata ? this.getOrCreateChatEndpointInstance(modelMetadata) : this.getChatEndpoint('copilot-utility');
+		} catch (e) {
+			const localModels = await lm.selectChatModels({ vendor: 'local' });
+			if (localModels.length > 0) {
+				this._logService.info(`[Autopilot] CAPI endpoint resolution failed, falling back to local model: ${localModels[0].id}`);
+				return this._instantiationService.createInstance(ExtensionContributedChatEndpoint, localModels[0]);
+			}
+			throw e;
+		}
 	}
 
 	/**

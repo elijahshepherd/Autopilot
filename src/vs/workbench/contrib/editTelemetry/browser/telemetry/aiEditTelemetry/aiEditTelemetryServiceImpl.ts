@@ -41,7 +41,7 @@ export class AiEditTelemetryServiceImpl implements IAiEditTelemetryService {
 			editLinesInserted: number | undefined;
 			editLinesDeleted: number | undefined;
 
-			modeId: 'ask' | 'edit' | 'agent' | 'custom' | 'applyCodeBlock' | undefined;
+			modeId: 'ask' | 'edit' | 'agent' | 'debug' | 'custom' | 'applyCodeBlock' | undefined;
 			modelId: string | undefined;
 			applyCodeBlockSuggestionId: string | undefined;
 			sourceRequestId: string | undefined;
@@ -115,7 +115,7 @@ export class AiEditTelemetryServiceImpl implements IAiEditTelemetryService {
 			editLinesInserted: number | undefined;
 			editLinesDeleted: number | undefined;
 
-			modeId: 'ask' | 'edit' | 'agent' | 'custom' | 'applyCodeBlock' | undefined;
+			modeId: 'ask' | 'edit' | 'agent' | 'debug' | 'custom' | 'applyCodeBlock' | undefined;
 			modelId: string | undefined;
 			applyCodeBlockSuggestionId: string | undefined;
 			sourceRequestId: string | undefined;
@@ -197,7 +197,7 @@ export class AiEditTelemetryServiceImpl implements IAiEditTelemetryService {
 			editLinesInserted: number | undefined;
 			editLinesDeleted: number | undefined;
 
-			modeId: 'ask' | 'edit' | 'agent' | 'custom' | 'applyCodeBlock' | undefined;
+			modeId: 'ask' | 'edit' | 'agent' | 'debug' | 'custom' | 'applyCodeBlock' | undefined;
 			modelId: string | undefined;
 			applyCodeBlockSuggestionId: string | undefined;
 			sourceRequestId: string | undefined;

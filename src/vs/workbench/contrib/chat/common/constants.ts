@@ -110,7 +110,8 @@ export enum ChatConfiguration {
 export enum ChatModeKind {
 	Ask = 'ask',
 	Edit = 'edit',
-	Agent = 'agent'
+	Agent = 'agent',
+	Debug = 'debug'
 }
 
 /**

@@ -28,30 +28,10 @@ import { isWeb } from '../../../../../base/common/platform.js';
 import { InEditorZenModeContext } from '../../../../common/contextkeys.js';
 import { ChatConfiguration } from '../../common/constants.js';
 
-// Autopilot: Detect if the user has any local-language-model provider configured
-// (env vars or ~/.autopilot/providers.json). If so, hide the Copilot status bar entry
-// and dashboard since none of that telemetry is relevant to Autopilot.
+// Autopilot: Always returns true to permanently hide the Copilot status bar
+// entry. Left as a function so the future toggle path can be re-enabled.
 function _isAutopilotLocalOnlyMode(): boolean {
-	try {
-		// node require: keep lazy so non-electron surfaces stay clear
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const nodeFs = require('fs') as typeof import('fs');
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const nodeOs = require('os') as typeof import('os');
-		// eslint-disable-next-line @typescript-eslint/no-require-imports
-		const nodePath = require('path') as typeof import('path');
-		if (process.env.OPENAI_API_KEY?.trim() || process.env.ANTHROPIC_API_KEY?.trim()) {
-			return true;
-		}
-		const candidates = [
-			nodePath.join(nodeOs.homedir(), '.autopilot', 'providers.json'),
-			nodePath.join(nodeOs.homedir(), '.config', 'autopilot', 'providers.json'),
-		];
-		for (const c of candidates) {
-			try { if (nodeFs.existsSync(c)) return true; } catch { /* noop */ }
-		}
-	} catch { /* noop */ }
-	return false;
+	return true;
 }
 
 export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribution {
@@ -107,8 +87,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 	}
 
 	private update(): void {
-		// Autopilot: hide the Copilot status bar entry entirely when a local
-		// provider is configured and the Copilot quota metrics don't apply.
+		// Autopilot: hide the Copilot status bar entry entirely.
 		if (_isAutopilotLocalOnlyMode()) {
 			this.entry?.dispose();
 			this.entry = undefined;
