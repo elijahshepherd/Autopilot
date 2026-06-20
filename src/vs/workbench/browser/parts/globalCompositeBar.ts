@@ -53,7 +53,6 @@ export class GlobalCompositeBar extends Disposable {
 	readonly element: HTMLElement;
 
 	private readonly globalActivityAction = this._register(new Action(GLOBAL_ACTIVITY_ID));
-	private readonly accountAction = this._register(new Action(ACCOUNTS_ACTIVITY_ID));
 	private readonly globalActivityActionBar: ActionBar;
 
 	constructor(
@@ -78,23 +77,6 @@ export class GlobalCompositeBar extends Disposable {
 					return this.instantiationService.createInstance(GlobalActivityActionViewItem, this.contextMenuActionsProvider, { ...options, colors: this.colors, hoverOptions: this.activityHoverOptions }, contextMenuAlignmentOptions);
 				}
 
-				if (action.id === ACCOUNTS_ACTIVITY_ID) {
-					return this.instantiationService.createInstance(AccountsActivityActionViewItem,
-						this.contextMenuActionsProvider,
-						{
-							...options,
-							colors: this.colors,
-							hoverOptions: this.activityHoverOptions
-						},
-						contextMenuAlignmentOptions,
-						(actions: IAction[]) => {
-							actions.unshift(...[
-								toAction({ id: 'hideAccounts', label: localize('hideAccounts', "Hide Accounts"), run: () => setAccountsActionVisible(storageService, false) }),
-								new Separator()
-							]);
-						});
-				}
-
 				throw new Error(`No view item for action '${action.id}'`);
 			},
 			orientation: ActionsOrientation.VERTICAL,
@@ -102,21 +84,12 @@ export class GlobalCompositeBar extends Disposable {
 			preventLoopNavigation: true
 		}));
 
-		if (this.accountsVisibilityPreference) {
-			this.globalActivityActionBar.push(this.accountAction, { index: GlobalCompositeBar.ACCOUNTS_ACTION_INDEX });
-		}
-
 		this.globalActivityActionBar.push(this.globalActivityAction);
 
 		this.registerListeners();
 	}
 
 	private registerListeners(): void {
-		this.extensionService.whenInstalledExtensionsRegistered().then(() => {
-			if (!this._store.isDisposed) {
-				this._register(this.storageService.onDidChangeValue(StorageScope.PROFILE, AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY, this._store)(() => this.toggleAccountsActivity()));
-			}
-		});
 	}
 
 	create(parent: HTMLElement): void {
@@ -132,26 +105,7 @@ export class GlobalCompositeBar extends Disposable {
 	}
 
 	getContextMenuActions(): IAction[] {
-		return [toAction({ id: 'toggleAccountsVisibility', label: localize('accounts', "Accounts"), checked: this.accountsVisibilityPreference, run: () => this.accountsVisibilityPreference = !this.accountsVisibilityPreference })];
-	}
-
-	private toggleAccountsActivity() {
-		if (this.globalActivityActionBar.length() === 2 && this.accountsVisibilityPreference) {
-			return;
-		}
-		if (this.globalActivityActionBar.length() === 2) {
-			this.globalActivityActionBar.pull(GlobalCompositeBar.ACCOUNTS_ACTION_INDEX);
-		} else {
-			this.globalActivityActionBar.push(this.accountAction, { index: GlobalCompositeBar.ACCOUNTS_ACTION_INDEX });
-		}
-	}
-
-	private get accountsVisibilityPreference(): boolean {
-		return isAccountsActionVisible(this.storageService);
-	}
-
-	private set accountsVisibilityPreference(value: boolean) {
-		setAccountsActionVisible(this.storageService, value);
+		return [];
 	}
 }
 
@@ -727,24 +681,14 @@ export class SimpleGlobalActivityActionViewItem extends GlobalActivityActionView
 }
 
 function simpleActivityContextMenuActions(storageService: IStorageService, isAccount: boolean): IAction[] {
-	const currentElementContextMenuActions: IAction[] = [];
-	if (isAccount) {
-		currentElementContextMenuActions.push(
-			toAction({ id: 'hideAccounts', label: localize('hideAccounts', "Hide Accounts"), run: () => setAccountsActionVisible(storageService, false) }),
-			new Separator()
-		);
-	}
 	return [
-		...currentElementContextMenuActions,
-		toAction({ id: 'toggle.hideAccounts', label: localize('accounts', "Accounts"), checked: isAccountsActionVisible(storageService), run: () => setAccountsActionVisible(storageService, !isAccountsActionVisible(storageService)) }),
 		toAction({ id: 'toggle.hideManage', label: localize('manage', "Manage"), checked: true, enabled: false, run: () => { throw new Error('"Manage" can not be hidden'); } })
 	];
 }
 
 export function isAccountsActionVisible(storageService: IStorageService): boolean {
-	return storageService.getBoolean(AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY, StorageScope.PROFILE, true);
+	return false;
 }
 
 function setAccountsActionVisible(storageService: IStorageService, visible: boolean) {
-	storageService.store(AccountsActivityActionViewItem.ACCOUNTS_VISIBILITY_PREFERENCE_KEY, visible, StorageScope.PROFILE, StorageTarget.USER);
 }

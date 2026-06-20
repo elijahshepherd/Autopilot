@@ -88,13 +88,6 @@ class AuthenticationContribution extends Disposable implements IWorkbenchContrib
 	}
 
 	private _registerActions(): void {
-		this._register(registerAction2(ManageAccountsAction));
-		this._register(registerAction2(SignOutOfAccountAction));
-		this._register(registerAction2(ManageTrustedExtensionsForAccountAction));
-		this._register(registerAction2(ManageAccountPreferencesForExtensionAction));
-		this._register(registerAction2(ManageTrustedMcpServersForAccountAction));
-		this._register(registerAction2(ManageAccountPreferencesForMcpServerAction));
-		this._register(registerAction2(RemoveDynamicAuthenticationProvidersAction));
 	}
 }
 

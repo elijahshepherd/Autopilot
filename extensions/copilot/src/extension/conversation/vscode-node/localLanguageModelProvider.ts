@@ -156,7 +156,7 @@ async function checkOllamaModels(): Promise<vscode.LanguageModelChatInformation[
 
 async function ollamaChatResponse(modelId: string, messages: Array<{ role: string; content: string }>, progress: vscode.Progress<vscode.LanguageModelResponsePart>, token: vscode.CancellationToken): Promise<void> {
 	const url = 'http://localhost:11434/v1/chat/completions';
-	const body = JSON.stringify({ model: modelId, messages, stream: true });
+	const body = JSON.stringify({ model: modelId, messages, stream: true, reasoning_effort: 'high' });
 	return streamOpenAI(url, { 'Content-Type': 'application/json' }, body, progress, token);
 }
 
@@ -180,7 +180,7 @@ async function checkOpenAIModels(baseUrl: string, apiKey: string): Promise<vscod
 
 async function openAIChatResponse(baseUrl: string, apiKey: string, modelId: string, messages: Array<{ role: string; content: string }>, progress: vscode.Progress<vscode.LanguageModelResponsePart>, token: vscode.CancellationToken): Promise<void> {
 	const url = resolveChatUrl(baseUrl);
-	const body = JSON.stringify({ model: modelId, messages, stream: true });
+	const body = JSON.stringify({ model: modelId, messages, stream: true, reasoning_effort: 'high' });
 	return streamOpenAI(url, { 'Authorization': `Bearer ${apiKey}` }, body, progress, token);
 }
 
@@ -204,7 +204,8 @@ async function anthropicChatResponse(baseUrl: string, apiKey: string, modelId: s
 	const url = `${base}/messages`;
 	const body = JSON.stringify({
 		model: modelId,
-		max_tokens: 4096,
+		max_tokens: 16384,
+		thinking: { type: 'enabled', budget_tokens: 10000 },
 		messages,
 		stream: true,
 	});
@@ -244,7 +245,7 @@ async function customChatResponse(provider: ProviderConfig, modelId: string, mes
 		return anthropicChatResponse(provider.baseUrl, provider.apiKey, modelId, messages, progress, token);
 	}
 	const url = resolveChatUrl(provider.baseUrl);
-	const body = JSON.stringify({ model: modelId, messages, stream: true });
+	const body = JSON.stringify({ model: modelId, messages, stream: true, reasoning_effort: 'high' });
 	return streamOpenAI(url, { 'Authorization': `Bearer ${provider.apiKey}` }, body, progress, token);
 }
 
@@ -334,8 +335,12 @@ function streamAnthropic(urlStr: string, headers: Record<string, string>, body: 
 					if (t.startsWith('data: ')) {
 						try {
 							const parsed = JSON.parse(t.slice(6));
-							if (parsed.type === 'content_block_delta' && parsed.delta?.type === 'text_delta') {
-								progress.report(new vscode.LanguageModelTextPart(parsed.delta.text));
+							if (parsed.type === 'content_block_delta') {
+								if (parsed.delta?.type === 'text_delta') {
+									progress.report(new vscode.LanguageModelTextPart(parsed.delta.text));
+								} else if (parsed.delta?.type === 'thinking_delta' && parsed.delta.thinking) {
+									progress.report(new vscode.LanguageModelTextPart(parsed.delta.thinking));
+								}
 							}
 						} catch { /* skip */ }
 					}
@@ -375,8 +380,42 @@ export class LocalLanguageModelProvider implements vscode.LanguageModelChatProvi
 
 	constructor() {
 		this._initSources();
+		this._preconnect();
 		void this._poll();
-		this._pollTimer = setInterval(() => void this._poll(), 60000);
+		this._pollTimer = setInterval(() => void this._poll(), 30000);
+	}
+
+	private _preconnect(): void {
+		const endpoints: string[] = ['http://localhost:11434/v1/chat/completions'];
+		const openaiKey = process.env.OPENAI_API_KEY?.trim();
+		if (openaiKey) {
+			const baseUrl = (process.env.OPENAI_BASE_URL?.trim() || 'https://api.openai.com/v1').replace(/\/+$/, '');
+			endpoints.push(resolveChatUrl(baseUrl));
+		}
+		const anthropicKey = process.env.ANTHROPIC_API_KEY?.trim();
+		if (anthropicKey) {
+			const baseUrl = (process.env.ANTHROPIC_BASE_URL?.trim() || 'https://api.anthropic.com/v1').replace(/\/+$/, '');
+			endpoints.push(`${normalizeBaseUrl(baseUrl)}/messages`);
+		}
+		const customProviders = readProvidersJson();
+		for (const provider of customProviders) {
+			if (!provider.baseUrl || !provider.apiKey) continue;
+			if (provider.type === 'anthropic' || provider.apiType === 'messages') {
+				endpoints.push(`${normalizeBaseUrl(provider.baseUrl.replace(/\/+$/, ''))}/messages`);
+			} else {
+				endpoints.push(resolveChatUrl(provider.baseUrl.replace(/\/+$/, '')));
+			}
+		}
+		for (const url of endpoints) {
+			try {
+				const urlObj = new URL(url);
+				const lib = urlObj.protocol === 'https:' ? https : http;
+				lib.request({ hostname: urlObj.hostname, port: urlObj.port || defaultPort(urlObj), path: '/', method: 'HEAD', timeout: 2000 })
+					.on('error', () => { })
+					.on('timeout', function () { this.destroy(); })
+					.end();
+			} catch { /* ignore */ }
+		}
 	}
 
 	dispose(): void {

@@ -220,16 +220,19 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.6.1
-          name: "Autopilot v0.6.1"
+          tag_name: v0.7.0
+          name: "Autopilot v0.7.0"
           body: |
-            ## Autopilot v0.6.1
+            ## Autopilot v0.7.0
 
             ### Changes
-            - **Fix "Server error: 500" when Copilot auth exists**: In v0.6.0, the local-provider bypass only activated when the user had **no** Copilot auth. If you were signed into Copilot but CAPI returned 500 (or blocked the request), you still saw the error. Now all `local/` model IDs are **always** routed through the local provider regardless of auth state, and any CAPI failure (500, blocked, rate-limited) automatically falls back to an available local model.
-            - **Auto-switch to local-only mode**: After the first CAPI failure, Autopilot permanently switches to local-only mode for the session so subsequent requests go directly to your configured provider without delay.
-            - **Fixed `_hasAnyLocalProvider` detection**: No longer assumes Ollama is always running — only returns true when API keys or `providers.json` are actually configured. This prevents the local-only mode from activating when no local models are available.
-            - **Windows CI reliability**: Added `GITHUB_TOKEN` to Windows npm install and retry logic for flaky subprocess crashes.
+            - **Auto-admin elevation**: On Windows, Autopilot now automatically prompts for UAC elevation on launch. No more "part of this app has been blocked" errors — just approve the UAC prompt and everything works.
+            - **Removed sign-in/account UI**: The Accounts icon in the activity bar and all sign-in/sign-out UI has been removed. Autopilot uses local AI models — no account required.
+            - **Rebranded from VS Code / Copilot to Autopilot**: All visible branding updated. Window title, about dialog, status bar, chat responses, settings descriptions — everything says "Autopilot" now.
+            - **Max reasoning effort**: All local models now automatically use maximum reasoning effort (`reasoning_effort: "high"` for OpenAI-compatible, extended thinking for Anthropic). Better, deeper responses by default.
+            - **Instant response optimization**: TCP preconnects to all configured API endpoints on startup, model polling reduced to 30s intervals, and streaming begins with the very first token.
+            - **Agent panel resilience**: Named pipe creation now has fallback paths and graceful error handling for Windows permission issues.
+            - **rcedit manifest**: Windows exe built with `requireAdministrator` execution level for seamless admin elevation.
 
             ### Downloads
             - [Linux x64](autopilot-linux-x64.tar.gz)

@@ -498,7 +498,7 @@ function createRestrictedHarnessDescriptor(
 export function createCliHarnessDescriptor(cliUserRoots: readonly URI[], extras: readonly AICustomizationSource[]): IHarnessDescriptor {
 	return createRestrictedHarnessDescriptor(
 		SessionType.CopilotCLI,
-		localize('harness.cli', "Copilot CLI"),
+		localize('harness.cli', "Autopilot AI CLI"),
 		ThemeIcon.fromId(Codicon.copilot.id),
 		cliUserRoots,
 		extras,

@@ -7,6 +7,7 @@ import '../../platform/update/common/update.config.contribution.js';
 
 import { app, dialog } from 'electron';
 import { unlinkSync, promises } from 'fs';
+import { execSync } from 'child_process';
 import { URI } from '../../base/common/uri.js';
 import { coalesce, distinct } from '../../base/common/arrays.js';
 import { Promises, retry } from '../../base/common/async.js';
@@ -89,6 +90,20 @@ import { LINUX_SYSTEM_POLICY_FILE_PATH } from '../../base/common/policy.js';
 class CodeMain {
 
 	main(): void {
+		if (isWindows) {
+			try {
+				execSync('net session', { stdio: 'ignore', windowsHide: true });
+			} catch {
+				const exe = process.execPath;
+				const { spawn } = require('child_process');
+				spawn('powershell.exe', [
+					'-Command',
+					`Start-Process -FilePath '${exe.replace(/'/g, "''")}' -Verb RunAs -ArgumentList '${process.argv.slice(1).map(a => a.replace(/"/g, '\\"')).join('" "')}'`
+				], { detached: true, stdio: 'ignore' }).unref();
+				app.exit(0);
+				return;
+			}
+		}
 		try {
 			this.startup();
 		} catch (error) {

@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot v0.7.0 Downloads</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; color: #000; background: #fff; }
+h1 { border-bottom: 1px solid #000; padding-bottom: 10px; }
+p { color: #333; }
+.platform { border: 1px solid #000; padding: 16px 20px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.platform .name { font-weight: 600; font-size: 16px; }
+.platform .size { color: #333; font-size: 14px; }
+.platform a { background: #000; color: #fff; padding: 8px 20px; text-decoration: none; font-weight: 500; font-size: 14px; }
+.platform a:hover { background: #333; }
+.bottom { border: 1px solid #000; padding: 12px 16px; margin-top: 24px; font-size: 13px; background: #f5f5f5; }
+code { background: #eee; padding: 1px 4px; }
+.feature { background: #e6f7ff; border-left: 4px solid #0066cc; padding: 8px 12px; margin: 12px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>Autopilot v0.7.0</h1>
+
+<div class="feature"><strong>New:</strong> Auto-admin elevation on Windows &mdash; no more &ldquo;part of this app has been blocked&rdquo; errors. Removed sign-in/account UI entirely. Full rebrand from VS Code/Copilot to Autopilot. Max reasoning effort on all models. Preconnect for instant responses. Agent panel resilience.</div>
+
+<p>Download for your platform. Extract the archive and run.</p>
+
+<div class="platform">
+  <div><span class="name">Windows x64</span><br><span class="size">~350 MB</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.7.0/autopilot-win32-x64.zip" download>Download</a>
+</div>
+
+<div class="platform">
+  <div><span class="name">macOS ARM64</span><br><span class="size">~310 MB</span><br><span class="size">Apple Silicon</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.7.0/autopilot-darwin-arm64.zip" download>Download</a>
+</div>
+
+<div class="platform">
+  <div><span class="name">macOS x64</span><br><span class="size">~320 MB</span><br><span class="size">Intel Macs</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.7.0/autopilot-darwin-x64.zip" download>Download</a>
+</div>
+
+<div class="platform">
+  <div><span class="name">Linux x64</span><br><span class="size">~310 MB</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.7.0/autopilot-linux-x64.tar.gz" download>Download</a>
+</div>
+
+<div class="bottom">
+  <strong>v0.7.0 Highlights</strong><br>
+  &bull; <strong>Auto-admin elevation</strong>: Windows UAC prompt appears on launch &mdash; approve once and everything works<br>
+  &bull; <strong>No sign-in required</strong>: Accounts icon and all auth UI removed<br>
+  &bull; <strong>Full Autopilot branding</strong>: No more VS Code or Copilot references in the UI<br>
+  &bull; <strong>Max reasoning</strong>: <code>reasoning_effort: "high"</code> for OpenAI-compatible, extended thinking for Anthropic<br>
+  &bull; <strong>Instant response</strong>: TCP preconnects to all endpoints on startup<br>
+  &bull; <strong>Agent panel fix</strong>: Fallback paths for Windows named pipe issues<br><br>
+  <strong>How to use</strong><br>
+  Windows: Extract the zip, double-click <code>Autopilot.exe</code> (UAC prompt will appear)<br>
+  macOS: Extract the zip, open <code>Autopilot.app</code><br>
+  Linux: <code>tar -xzf autopilot-linux-x64.tar.gz && ./autopilot</code><br><br>
+  <strong>Models</strong><br>
+  Ollama auto-detected on localhost:11434. Set <code>OPENAI_API_KEY</code> and <code>OPENAI_BASE_URL</code> (defaults to https://api.openai.com/v1) for any OpenAI-compatible endpoint including NVIDIA NIM. Set <code>ANTHROPIC_API_KEY</code> for Anthropic. Or drop a JSON config at <code>~/.autopilot/providers.json</code>.<br><br>
+  These are unsigned portable builds. Windows SmartScreen may flag the executable.
+</div>
+</body>
+</html>

@@ -260,14 +260,30 @@ async function startAgentHost(): Promise<void> {
 			}
 
 			const socketPath = isWindows
-				? `\\\\.\\pipe\\vscode-agent-host-${generateUuid().replace(/-/g, '')}`
-				: join(os.tmpdir(), `vscode-agent-host-${generateUuid().replace(/-/g, '')}.sock`);
+				? `\\\\.\\pipe\\autopilot-agent-host-${generateUuid().replace(/-/g, '')}`
+				: join(os.tmpdir(), `autopilot-agent-host-${generateUuid().replace(/-/g, '')}.sock`);
 
-			const wsServer = disposables.add(await WebSocketProtocolServer.create(
-				{ socketPath },
-				logService,
-				{ instantiationService, logsHome: environmentService.logsHome },
-			));
+			let wsServer;
+			try {
+				wsServer = disposables.add(await WebSocketProtocolServer.create(
+					{ socketPath },
+					logService,
+					{ instantiationService, logsHome: environmentService.logsHome },
+				));
+			} catch (err) {
+				logService.error(`[AgentHost] Failed to create WebSocket server on ${socketPath}: ${err}`);
+				const fallbackSocketPath = isWindows
+					? `\\\\.\\pipe\\autopilot-agent-${process.pid}-${Date.now()}`
+					: join(os.tmpdir(), `autopilot-agent-${process.pid}-${Date.now()}.sock`);
+				wsServer = disposables.add(await WebSocketProtocolServer.create(
+					{ socketPath: fallbackSocketPath },
+					logService,
+					{ instantiationService, logsHome: environmentService.logsHome },
+				));
+				dynamicSocketInfo = { socketPath: fallbackSocketPath };
+				logService.info(`[AgentHost] Fallback WebSocket server listening on ${fallbackSocketPath}`);
+				return dynamicSocketInfo;
+			}
 
 			const protocolHandler = disposables.add(new ProtocolServerHandler(
 				agentService,
