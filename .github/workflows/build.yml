@@ -171,7 +171,7 @@ jobs:
             } catch {
               if ($i -eq 5) { throw }
               Write-Host "npm ci failed attempt $i, retrying..."
-              Start-Sleep -Seconds 5
+              Start-Sleep -Seconds 10
             }
           }
         env:
@@ -179,6 +179,7 @@ jobs:
           VSCODE_ARCH: x64
           ELECTRON_SKIP_BINARY_DOWNLOAD: 1
           PLAYWRIGHT_SKIP_BROWSER_DOWNLOAD: 1
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Download built-in extensions
         shell: pwsh

@@ -87,11 +87,23 @@ async function npmInstallAsync(dir: string, opts?: child_process.SpawnOptions): 
 		], syncOpts);
 		run('sudo', ['chown', '-R', `${userinfo.uid}:${userinfo.gid}`, `${path.resolve(root, dir)}`], syncOpts);
 	} else {
-		log(dir, 'Installing dependencies...');
-		const output = await spawnAsync(npm, command.split(' '), finalOpts);
-		if (output.trim()) {
-			for (const line of output.trim().split('\n')) {
-				log(dir, line);
+		const maxRetries = process.platform === 'win32' ? 3 : 1;
+		for (let attempt = 1; attempt <= maxRetries; attempt++) {
+			try {
+				log(dir, attempt > 1 ? `Installing dependencies (attempt ${attempt})...` : 'Installing dependencies...');
+				const output = await spawnAsync(npm, command.split(' '), finalOpts);
+				if (output.trim()) {
+					for (const line of output.trim().split('\n')) {
+						log(dir, line);
+					}
+				}
+				break;
+			} catch (err) {
+				if (attempt === maxRetries) {
+					throw err;
+				}
+				log(dir, `Install failed (attempt ${attempt}), retrying in 10s...`);
+				await new Promise(resolve => setTimeout(resolve, 10000));
 			}
 		}
 	}
