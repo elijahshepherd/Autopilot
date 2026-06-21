@@ -222,7 +222,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 
 		class ChatSetupTriggerAction extends Action2 {
 
-			static CHAT_SETUP_ACTION_LABEL = localize2('triggerChatSetup', "Use AI Features with Autopilot AI for free...");
+			static CHAT_SETUP_ACTION_LABEL = localize2('triggerChatSetup', "Use Autopilot for free...");
 
 			constructor() {
 				super({
@@ -325,7 +325,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 			constructor() {
 				super({
 					id: 'workbench.action.chat.triggerSetupForceSignIn',
-					title: localize2('forceSignIn', "Sign in to use Autopilot AI")
+					title: localize2('forceSignIn', "Sign in to use Autopilot")
 				});
 			}
 
@@ -363,7 +363,7 @@ export class ChatSetupContribution extends Disposable implements IWorkbenchContr
 			constructor() {
 				super({
 					id: 'workbench.action.chat.triggerSetupFromAccounts',
-					title: localize2('triggerChatSetupFromAccounts', "Sign in to use Autopilot AI..."),
+					title: localize2('triggerChatSetupFromAccounts', "Sign in to use Autopilot..."),
 					f1: false
 				});
 			}

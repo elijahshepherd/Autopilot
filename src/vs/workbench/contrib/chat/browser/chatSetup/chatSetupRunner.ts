@@ -227,7 +227,7 @@ export class ChatSetup {
 				]);
 			}
 		} else {
-			buttons = [[localize('setupAIButton', "Use AI Features"), ChatSetupStrategy.DefaultSetup, undefined]];
+			buttons = [[localize('setupAIButton', "Use Autopilot"), ChatSetupStrategy.DefaultSetup, undefined]];
 		}
 
 		return buttons;
@@ -247,7 +247,7 @@ export class ChatSetup {
 		}
 
 		if (this.context.state.entitlement === ChatEntitlement.Unknown || options?.forceSignInDialog) {
-			return localize('signIn', "Sign in to use Autopilot AI");
+			return localize('signIn', "Sign in to use Autopilot");
 		}
 
 		return localize('startUsing', "Start using AI Features");

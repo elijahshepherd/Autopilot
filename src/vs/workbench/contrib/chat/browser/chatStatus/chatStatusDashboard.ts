@@ -568,7 +568,7 @@ export class ChatStatusDashboard extends DomWidget {
 		const anonymousUser = this.chatEntitlementService.anonymous;
 		const disabled = this.chatEntitlementService.sentiment.disabled || this.chatEntitlementService.sentiment.untrusted;
 		// Keep the Sign-in entry visible even when BYOK models are present so air-gapped
-		// users can still authenticate to unlock the full Copilot experience.
+		// users can still authenticate to unlock the full Autopilot experience.
 		const signedOut = this.chatEntitlementService.entitlement === ChatEntitlement.Unknown;
 		if (!(newUser || signedOut || disabled)) {
 			return;
