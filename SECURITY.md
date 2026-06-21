@@ -2,7 +2,7 @@
 
 Autopilot takes the security of our software products and services seriously, which includes all source code repositories.
 
-**Please do not report security vulnerabilities through public GitHub issues.**
+**Please do not report security vulnerabilities through public GitHub issues.** (Unless minor to mediocre)
 
 For security reporting information, please file a [GitHub Security Advisory](https://github.com/elijahshepherd/Autopilot/security/advisories/new) for this repository.
 
