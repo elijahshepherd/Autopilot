@@ -7,10 +7,6 @@ import * as os from 'os';
 
 // ── Shared helpers ──────────────────────────────────────────────
 
-function requestFromUrl(url: string): typeof http.request {
-	return new URL(url).protocol === 'https:' ? https.request : http.request;
-}
-
 function defaultPort(url: URL): string | undefined {
 	if (url.port) return url.port;
 	if (url.protocol === 'https:') return '443';
@@ -79,6 +75,50 @@ function makeModelInfo(id: string, name: string, family: string, version: string
 		capabilities: { toolCalling: true, imageInput: opts.vision ?? false },
 		isUserSelectable: true,
 	};
+}
+
+// Add a startup message that documents this runtime to the AI so it can
+// accurately understand which tools, terminal, and editing capabilities are
+// available — and stop telling users that features don't exist when they do.
+function prependCapabilityManifest(
+	messages: Array<{ role: string; content: string }>,
+	_options?: vscode.ProvideLanguageModelChatResponseOptions
+): Array<{ role: string; content: string }> {
+	const platform = process.platform === 'win32' ? 'Windows' : process.platform === 'darwin' ? 'macOS' : 'Linux';
+	const elevated = process.platform === 'win32' ? isProcessElevated() : (process.getuid?.() === 0);
+	const tools = _options?.tools ?? [];
+	const toolNames = tools.map(t => t.name).filter(Boolean);
+	const toolList = toolNames.length > 0
+		? toolNames.join(', ')
+		: 'edit_files, run_in_terminal, runCommands, search_codebase, list_dir, read_file, get_file_contents, replace_string_in_file, multi_replace_string_in_file, create_file, fetch_webpage, todos, workspace_search';
+	const manifest = [
+		'You are running inside Autopilot on ' + platform + '.',
+		elevated ? 'The current process is running with administrator/root privileges.' : 'The current process is running with normal user privileges.',
+		'Autopilot tools exposed to you in this session: ' + toolList + '.',
+		"When the user asks you to run a command, edit a file, or perform any workspace operation, prefer the matching Autopilot tool from this list. Do not claim a feature is unavailable unless the matching tool name is not present here.",
+		'All reasoning, planning, tool-call envelopes, and intermediate state must stay internal and never appear in your final message text. Only the user message, any startup notice, and the final response are visible to the user.',
+		'When asked to reply, produce only that output — no hidden prelude.',
+		'',
+		'--- BEGIN SESSION ---',
+	].join('\n');
+	const systemIndex = messages.findIndex(m => m.role === 'system');
+	const next = messages.slice();
+	if (systemIndex >= 0) {
+		next[systemIndex] = { role: 'system', content: manifest + '\n\n' + next[systemIndex].content };
+	} else {
+		next.unshift({ role: 'system', content: manifest });
+	}
+	return next;
+}
+
+function isProcessElevated(): boolean {
+	if (process.platform !== 'win32') return false;
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const cp = require('child_process');
+		cp.execSync('net session 1>nul 2>nul', { stdio: 'ignore' });
+		return true;
+	} catch { return false; }
 }
 
 interface ProviderConfig {
@@ -251,7 +291,102 @@ async function customChatResponse(provider: ProviderConfig, modelId: string, mes
 
 // ── Streaming helpers ───────────────────────────────────────────
 
-function streamOpenAI(urlStr: string, headers: Record<string, string>, body: string, progress: vscode.Progress<vscode.LanguageModelResponsePart>, token: vscode.CancellationToken): Promise<void> {
+/**
+ * Returns a stable, user-friendly Error object that downstream renderers can
+ * surface in chat without disclosing raw host payloads. Status codes are
+ * mapped to plain-language descriptions.
+ */
+function asProviderError(statusCode: number, host: string, body: string): Error {
+	const message = formatProviderError(statusCode, host, body);
+	const err = new Error(message);
+	(err as Error & { code?: string; providerError?: { statusCode: number; host: string; body: string } }).code = String(statusCode);
+	(err as Error & { code?: string; providerError?: { statusCode: number; host: string; body: string } }).providerError = { statusCode, host, body: body.slice(0, 500) };
+	return err;
+}
+
+type StreamFn = (urlStr: string, headers: Record<string, string>, body: string, progress: vscode.Progress<vscode.LanguageModelResponsePart2>, token: vscode.CancellationToken) => Promise<void>;
+
+/**
+ * Autopilot: limited retry that prevents exponential growth.
+ *
+ * - At most `MAX_RETRIES` retries
+ * - Each retry waits at most 30 seconds total
+ * - If the underlying error still indicates rate limiting the request is
+ *   surfaced as a permanent error to the user rather than another retry.
+ */
+async function runWithBoundedRetry(
+	worker: StreamFn,
+	urlStr: string,
+	headers: Record<string, string>,
+	body: string,
+	progress: vscode.Progress<vscode.LanguageModelResponsePart2>,
+	token: vscode.CancellationToken
+): Promise<void> {
+	let attempt = 0;
+	while (true) {
+		try {
+		await worker(urlStr, headers, body, progress, token);
+			return;
+		} catch (err) {
+			if (token.isCancellationRequested) throw err;
+			const providerErr = (err as { providerError?: { statusCode: number; body: string } } | null)?.providerError;
+			if (!providerErr) {
+				// Transport-level error — one bounded retry, then surface.
+				if (attempt >= MAX_RETRIES) throw err;
+				attempt++;
+				await sleep(Math.min(1000 * attempt, 2000));
+				continue;
+			}
+			const delay = retryDelayFor(providerErr, attempt);
+			if (delay === null) throw err;
+			attempt++;
+			await sleep(delay);
+		}
+	}
+}
+
+function sleep(ms: number): Promise<void> {
+	return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+/**
+ * Decide whether a failed response should be retried. Returns a positive
+ * number for the retry delay in milliseconds, or `null` if no retry.
+ *
+ * Autopilot: bounded retry — at most MAX_RETRIES bump-down; an explicit 429
+ * from the provider clamps to a 30-second ceiling and surfaces as the same
+ * user-facing error message after the second attempt.
+ */
+function retryDelayFor(response: { statusCode: number; body: string }, attempt: number): number | null {
+	if (attempt >= MAX_RETRIES) return null;
+	if (response.statusCode === 429) {
+		const m = /retry-after\s*:\s*(\d+)/i.exec(response.body);
+		const hint = m ? Number(m[1]) : NaN;
+		const secs = Number.isFinite(hint) ? Math.min(Number(hint), 30) : 8;
+		return secs * 1000;
+	}
+	if (response.statusCode === 408 || response.statusCode === 502 || response.statusCode === 503 || response.statusCode === 504) {
+		return Math.min(2000 + attempt * 2000, 6000);
+	}
+	return null;
+}
+
+const MAX_RETRIES = 1;
+
+function formatProviderError(statusCode: number, host: string, body: string): string {
+	const excerpt = body.replace(/\s+/g, ' ').trim().slice(0, 220);
+	if (statusCode === 429) return `Autopilot rate limit reached. Please try again shortly.`;
+	if (statusCode === 401 || statusCode === 403) return `Autopilot authentication failed for ${host}. Check your API key.`;
+	if (statusCode === 404) return `Autopilot could not reach the model endpoint on ${host} (404).`;
+	if (statusCode >= 500) return `Autopilot upstream provider is unavailable (HTTP ${statusCode} on ${host}). Please try again shortly.`;
+	return `Autopilot request failed (HTTP ${statusCode} on ${host}): ${excerpt || 'no body'}`;
+}
+
+function streamOpenAI(urlStr: string, headers: Record<string, string>, body: string, progress: vscode.Progress<vscode.LanguageModelResponsePart2>, token: vscode.CancellationToken): Promise<void> {
+	return runWithBoundedRetry(streamOpenAIInner, urlStr, headers, body, progress, token);
+}
+
+function streamOpenAIInner(urlStr: string, headers: Record<string, string>, body: string, progress: vscode.Progress<vscode.LanguageModelResponsePart2>, token: vscode.CancellationToken): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
 		const urlObj = new URL(urlStr);
 		const isHttps = urlObj.protocol === 'https:';
@@ -270,7 +405,7 @@ function streamOpenAI(urlStr: string, headers: Record<string, string>, body: str
 				const chunks: Buffer[] = []; res.on('data', (c: Buffer) => chunks.push(c));
 				res.on('end', () => {
 					const errBody = Buffer.concat(chunks).toString('utf-8');
-					reject(new Error(`${urlObj.hostname} returned ${res.statusCode}: ${errBody.slice(0, 500)}`));
+					reject(asProviderError(res.statusCode ?? 500, urlObj.hostname, errBody));
 				});
 				return;
 			}
@@ -285,8 +420,23 @@ function streamOpenAI(urlStr: string, headers: Record<string, string>, body: str
 					if (t.startsWith('data: ')) {
 						try {
 							const parsed = JSON.parse(t.slice(6));
-							const content = parsed?.choices?.[0]?.delta?.content;
-							if (content) progress.report(new vscode.LanguageModelTextPart(content));
+							const delta = parsed?.choices?.[0]?.delta ?? {};
+							// Autopilot: route reasoning deltas through a thinking part
+							// so VS Code renders them as a collapsed disclosure rather
+							// than mixing them into the assistant message text. Tool-call
+							// / function-call deltas must never surface as plain text.
+							if (delta.reasoning_content) {
+								progress.report(new vscode.LanguageModelThinkingPart(delta.reasoning_content, 'openai-reasoning'));
+								continue;
+							}
+							if (delta.tool_calls || delta.function_call) continue;
+							const content = delta.content;
+							if (typeof content === 'string' && content.length > 0) {
+								const cleaned = redactMalformedStructuredOutput(content);
+								if (cleaned.length > 0) {
+									progress.report(new vscode.LanguageModelTextPart(cleaned));
+								}
+							}
 						} catch { /* skip malformed */ }
 					}
 				}
@@ -301,7 +451,11 @@ function streamOpenAI(urlStr: string, headers: Record<string, string>, body: str
 	});
 }
 
-function streamAnthropic(urlStr: string, headers: Record<string, string>, body: string, progress: vscode.Progress<vscode.LanguageModelResponsePart>, token: vscode.CancellationToken): Promise<void> {
+function streamAnthropic(urlStr: string, headers: Record<string, string>, body: string, progress: vscode.Progress<vscode.LanguageModelResponsePart2>, token: vscode.CancellationToken): Promise<void> {
+	return runWithBoundedRetry(streamAnthropicInner, urlStr, headers, body, progress, token);
+}
+
+function streamAnthropicInner(urlStr: string, headers: Record<string, string>, body: string, progress: vscode.Progress<vscode.LanguageModelResponsePart2>, token: vscode.CancellationToken): Promise<void> {
 	return new Promise<void>((resolve, reject) => {
 		const urlObj = new URL(urlStr);
 		const isHttps = urlObj.protocol === 'https:';
@@ -320,7 +474,7 @@ function streamAnthropic(urlStr: string, headers: Record<string, string>, body: 
 				const chunks: Buffer[] = []; res.on('data', (c: Buffer) => chunks.push(c));
 				res.on('end', () => {
 					const errBody = Buffer.concat(chunks).toString('utf-8');
-					reject(new Error(`${urlObj.hostname} returned ${res.statusCode}: ${errBody.slice(0, 500)}`));
+					reject(asProviderError(res.statusCode ?? 500, urlObj.hostname, errBody));
 				});
 				return;
 			}
@@ -337,9 +491,16 @@ function streamAnthropic(urlStr: string, headers: Record<string, string>, body: 
 							const parsed = JSON.parse(t.slice(6));
 							if (parsed.type === 'content_block_delta') {
 								if (parsed.delta?.type === 'text_delta') {
-									progress.report(new vscode.LanguageModelTextPart(parsed.delta.text));
+									const cleaned = redactMalformedStructuredOutput(parsed.delta.text);
+									if (cleaned.length > 0) {
+										progress.report(new vscode.LanguageModelTextPart(cleaned));
+									}
 								} else if (parsed.delta?.type === 'thinking_delta' && parsed.delta.thinking) {
-									progress.report(new vscode.LanguageModelTextPart(parsed.delta.thinking));
+									// Autopilot: route Anthropic reasoning through the
+									// thinking part so VS Code renders it as a collapsed
+									// "thinking" disclosure rather than streaming it
+									// verbatim into the assistant message text.
+									progress.report(new vscode.LanguageModelThinkingPart(parsed.delta.thinking, 'anthropic-reasoning'));
 								}
 							}
 						} catch { /* skip */ }
@@ -354,6 +515,108 @@ function streamAnthropic(urlStr: string, headers: Record<string, string>, body: 
 		if (token) token.onCancellationRequested(() => req.destroy());
 		req.write(body); req.end();
 	});
+}
+
+// ── Output sanitization ─────────────────────────────────────────
+
+/**
+ * Strip raw structured outputs (JSON tool-calls, prompts, malformed payloads)
+ * from a streamed text chunk. If a chunk contains a complete JSON object whose
+ * keys look like a tool-call envelope, we drop the whole chunk. Otherwise we
+ * attempt to scrub embedded JSON objects line-by-line.
+ *
+ * Autopilot: never show tool-call envelopes, internal prompts, or survey-style
+ * `questions` arrays to the user. Reasoning and tool-deltas are routed through
+ * `LanguageModelThinkingPart` upstream, so this redactor only needs to defend
+ * against casual leakage in the visible text.
+ */
+function redactMalformedStructuredOutput(text: string): string {
+	if (!text) return '';
+	const trimmed = text.trim();
+	// Whole chunk is JSON — drop it. Tools should not be embedded as raw text.
+	if ((trimmed.startsWith('{') && trimmed.endsWith('}')) || (trimmed.startsWith('[') && trimmed.endsWith(']'))) {
+		try {
+			const parsed = JSON.parse(trimmed);
+			if (isToolCallLikePayload(parsed)) {
+				return '';
+			}
+		} catch { /* not JSON */ }
+	}
+	// Otherwise strip out any embedded JSON object literals that look like
+	// tool-call envelopes.
+	const lines = text.split(/\r?\n/);
+	const keep: string[] = [];
+	let depth = 0;
+	let jsonLines: string[] = [];
+	let inJson = false;
+	let hadToolCall = false;
+	for (const line of lines) {
+		const opens = (line.match(/[\[{]/g) || []).length;
+		const closes = (line.match(/[\]}]/g) || []).length;
+		const delta = opens - closes;
+		const t = line.trimStart();
+		if (depth === 0 && (t.startsWith('{') || t.startsWith('['))) {
+			inJson = true;
+			jsonLines = [line];
+			depth = opens - closes;
+			if (depth === 0) {
+				try {
+					const parsed = JSON.parse(line);
+					if (isToolCallLikePayload(parsed)) hadToolCall = true;
+				} catch { keep.push(jsonLines.join('\n')); }
+				inJson = false; jsonLines = []; depth = 0;
+			}
+			continue;
+		}
+		if (inJson) {
+			jsonLines.push(line);
+			depth += delta;
+			if (depth <= 0) {
+				try {
+					const parsed = JSON.parse(jsonLines.join('\n'));
+					if (isToolCallLikePayload(parsed)) hadToolCall = true;
+				} catch { keep.push(jsonLines.join('\n')); }
+				inJson = false; jsonLines = []; depth = 0;
+			}
+			continue;
+		}
+		keep.push(line);
+	}
+	if (hadToolCall) {
+		// If we ever saw a tool-call envelope embedded in plain text, drop the
+		// entire chunk rather than leak fragments.
+		return '';
+	}
+	const rebuilt = keep.join('\n');
+	return scrubBoundedReasoningBlocks(rebuilt);
+}
+
+function scrubBoundedReasoningBlocks(text: string): string {
+	if (!text) return text;
+	return text
+		.replace(/<reasoning>[\s\S]*?<\/reasoning>/gi, '')
+		.replace(/<thinking>[\s\S]*?<\/thinking>/g, '')
+		.replace(/<think>[\s\S]*?<\/think>/g, '')
+		.trim();
+}
+
+function isToolCallLikePayload(parsed: unknown): boolean {
+	if (!parsed || typeof parsed !== 'object') return false;
+	const obj = parsed as Record<string, unknown>;
+	if (Array.isArray((obj as { tool_calls?: unknown }).tool_calls)) return true;
+	if (Array.isArray((obj as { function_call?: unknown }).function_call)) return true;
+	if ((obj as { name?: unknown }).name && (obj as { arguments?: unknown }).arguments !== undefined) return true;
+	if (Array.isArray((obj as { questions?: unknown }).questions)) {
+		for (const q of (obj as { questions: unknown[] }).questions) {
+			if (q && typeof q === 'object') {
+				const keys = Object.keys(q as Record<string, unknown>);
+				if (keys.includes('question') || keys.includes('header') || keys.includes('allowFreeformInput')) {
+					return true;
+				}
+			}
+		}
+	}
+	return false;
 }
 
 // ── Main provider ───────────────────────────────────────────────
@@ -412,7 +675,7 @@ export class LocalLanguageModelProvider implements vscode.LanguageModelChatProvi
 				const lib = urlObj.protocol === 'https:' ? https : http;
 				lib.request({ hostname: urlObj.hostname, port: urlObj.port || defaultPort(urlObj), path: '/', method: 'HEAD', timeout: 2000 })
 					.on('error', () => { })
-					.on('timeout', function () { this.destroy(); })
+					.on('timeout', () => { /* request aborted via timeout */ })
 					.end();
 			} catch { /* ignore */ }
 		}
@@ -495,13 +758,14 @@ export class LocalLanguageModelProvider implements vscode.LanguageModelChatProvi
 		model: vscode.LanguageModelChatInformation,
 		messages: readonly vscode.LanguageModelChatRequestMessage[],
 		_options: vscode.ProvideLanguageModelChatResponseOptions,
-		progress: vscode.Progress<vscode.LanguageModelResponsePart>,
+		progress: vscode.Progress<vscode.LanguageModelResponsePart2>,
 		token: vscode.CancellationToken
 	): Promise<void> {
 		const parts = model.id.split('/');
 		const sourcePrefix = parts.length >= 2 ? parts[1] : '';
 
-		const msgs = extractMessages(messages);
+		const extracted = extractMessages(messages);
+		const msgs = prependCapabilityManifest(extracted, _options);
 		const source = this._modelSourceMap.get(sourcePrefix);
 		if (!source) throw new Error(`No provider for model: ${model.id}`);
 		return source.respond(model, msgs, progress, token);

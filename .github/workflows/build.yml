@@ -220,19 +220,19 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.8.0
-          name: "Autopilot v0.8.0"
+          tag_name: v0.9.0
+          name: "Autopilot v0.9.0"
           body: |
-            ## Autopilot v0.8.0
+            ## Autopilot v0.9.0
 
-            ### Changes
-            - **Agents Window: separate admin-elevated EXE**: The Agents Window now spawns as its own elevated process instead of opening in the same window. No more "loads forever" — it shows up immediately as a fully admin-elevated, focused window sharing the same user data dir as the editor.
-            - **Debug chat mode**: A new `Debug` mode pill in the chat header. Picks the debug icon, triggers autonomous diagnose-and-fix workflows, and is registered as a first-class chat participant (`github.copilot.debugSession`).
-            - **Identifies as Autopilot**: All chat responses now say "Autopilot", not "GitHub Copilot". Tone is direct and easy to understand — no filler, no emojis.
-            - **CAPI `#codebase` crash fixed**: The CAPI endpoint resolver no longer throws when no Copilot token is configured. Both `codebaseToolCalling.getEndpoint()` and `ProductionEndpointProvider.getChatEndpoint()` now fall back to local models via `vscode.lm.selectChatModels({ vendor: 'local' })` on any CAPI failure.
-            - **Removed MCP server entries**: The `vscode-automation-mcp` and `component-explorer` entries in `.vscode/mcp.json` have been removed.
-            - **Status bar fully hidden**: The Copilot status-bar entry (icon + quota bars) is unconditionally hidden in Autopilot, regardless of provider configuration.
-            - **Rebrand cleanup**: All chat participant `fullName` fields changed to "Autopilot AI", matching the username the chat rendering hides. The "Copilot" label no longer appears above user messages.
+            ### Tooling, prompts, and chat hygiene
+            - **Reasoning is now collapsible, never leaked**: OpenAI `reasoning_content` and Anthropic `thinking_delta` are routed through the proper `LanguageModelThinkingPart`, so VS Code renders them as the standard collapsible "thinking" disclosure. Hidden reasoning blocks (`<thinking>`, `<reasoning>`, `<think>`) that some open-source models emit as plain text are scrubbed from the assistant message body.
+            - **Malformed tool outputs are dropped, not shown**: Tool-call envelopes, `questions` arrays, surveys, and similar JSON payloads that occasionally leak from low-quality model output are detected and stripped before they reach the UI.
+            - **Agent capability manifest**: Each request now carries a startup system message that lists the exact tools Auto-mode has available (file edits, terminal commands, search, fetch, workspace ops, etc.). The AI no longer claims features are unavailable when they're enabled.
+            - **Bounded rate-limit handling**: 429 responses now retry at most once with a 30-second ceiling, then surface a friendly user-visible error (`Autopilot rate limit reached. Please try again shortly.`) — no infinite loops, no exponential growth, no endless thinking animations.
+
+            ### Infrastructure
+            - **Streaming hardened**: Streaming responses now run via `LanguageModelResponsePart2`, matching the BYOK providers (Anthropic/Gemini) so reasoning/tool parts are passed through cleanly.
 
             ### Downloads
             - [Linux x64](autopilot-linux-x64.tar.gz)
