@@ -2,7 +2,7 @@
 
 ## Read First
 
-> [!CRITICAL]
+> [!IMPORTANT]
 > You must run the application as administrator on Windows.
 
 This is required because Windows Security may **incorrectly** flag certain operations, which can prevent the app from running properly. If you do not do this, the app may fail to open or display security warnings.
