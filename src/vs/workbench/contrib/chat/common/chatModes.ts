@@ -308,6 +308,7 @@ class ChatModes extends Disposable implements IChatModes {
 			builtinModes.unshift(ChatMode.Agent);
 		}
 		builtinModes.push(ChatMode.Edit);
+		builtinModes.push(ChatMode.Plan);
 		builtinModes.push(ChatMode.Debug);
 		return builtinModes;
 	}
@@ -713,13 +714,15 @@ export namespace ChatMode {
 	export const Edit = new BuiltinChatMode(ChatModeKind.Edit, 'Edit', localize('editsDescription', "Edit or refactor selected code"), Codicon.edit);
 	export const Agent = new BuiltinChatMode(ChatModeKind.Agent, 'Agent', localize('agentDescription', "Describe what to build"), Codicon.agent);
 	export const Debug = new BuiltinChatMode(ChatModeKind.Debug, 'Debug', localize('debugDescription', "Diagnose and fix issues"), Codicon.debug);
+	export const Plan = new BuiltinChatMode(ChatModeKind.Plan, 'Plan', localize('planDescription', "Plan before you build"), Codicon.tasklist);
 }
 
 export function isBuiltinChatMode(mode: IChatMode): boolean {
 	return mode.id === ChatMode.Ask.id ||
 		mode.id === ChatMode.Edit.id ||
 		mode.id === ChatMode.Agent.id ||
-		mode.id === ChatMode.Debug.id;
+		mode.id === ChatMode.Debug.id ||
+		mode.id === ChatMode.Plan.id;
 }
 
 /**

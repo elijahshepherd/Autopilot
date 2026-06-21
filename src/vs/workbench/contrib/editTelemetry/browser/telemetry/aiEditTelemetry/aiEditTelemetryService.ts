@@ -60,6 +60,8 @@ export interface IEditTelemetryBaseData {
 	| 'applyCodeBlock'
 	/** Debug mode for diagnosing and fixing issues */
 	| 'debug'
+	/** Plan mode for planning before building */
+	| 'plan'
 	| undefined;
 	applyCodeBlockSuggestionId: EditSuggestionId | undefined; // Is set if modeId is applyCodeBlock
 

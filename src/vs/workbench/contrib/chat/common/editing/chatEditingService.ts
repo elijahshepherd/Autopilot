@@ -82,7 +82,7 @@ export interface IModifiedEntryTelemetryInfo {
 	readonly requestId: string;
 	readonly result: IChatAgentResult | undefined;
 	readonly modelId: string | undefined;
-	readonly modeId: 'ask' | 'edit' | 'agent' | 'debug' | 'custom' | 'applyCodeBlock' | undefined;
+	readonly modeId: 'ask' | 'edit' | 'agent' | 'debug' | 'plan' | 'custom' | 'applyCodeBlock' | undefined;
 	readonly applyCodeBlockSuggestionId: EditSuggestionId | undefined;
 	readonly feature: 'sideBarChat' | 'inlineChat' | undefined;
 }
