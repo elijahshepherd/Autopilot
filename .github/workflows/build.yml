@@ -199,11 +199,10 @@ jobs:
           mkdir downloads -Force
           Compress-Archive -Path ..\VSCode-win32-x64\* -DestinationPath downloads\autopilot-win32-x64.zip
 
-          # Autopilot: build a second zip containing a copy of the EXE renamed
-          # "Agents.exe" plus a launcher script that invokes the agents-window
-          # mode with admin elevation. This way the user can pin a separate
-          # "Agents" icon next to "Autopilot" without us having to maintain a
-          # second electron product.
+          # Autopilot: build a second zip containing a copy of the binary renamed
+          # "Agents.exe" plus a launcher script. Lets the user pin a distinct
+          # "Agents" icon next to Autopilot without us maintaining a second
+          # electron product.
           $sourceDir = Join-Path .. 'VSCode-win32-x64'
           $agentsDir = Join-Path .. 'VSCode-agents-win32-x64'
           if (Test-Path $agentsDir) { Remove-Item -Recurse -Force $agentsDir }
@@ -215,18 +214,9 @@ jobs:
           if (Test-Path (Join-Path $agentsDir 'Autopilot.exe')) {
             Copy-Item (Join-Path $agentsDir 'Autopilot.exe') (Join-Path $agentsDir 'Agents.exe') -Force
           }
-          $agentsPs1 = @'
-$exe = Join-Path $PSScriptRoot 'Agents.exe'
-if (-not (Test-Path $exe)) {
-  $fallback = Join-Path $PSScriptRoot 'Autopilot.exe'
-  if (Test-Path $fallback) { $exe = $fallback } else { Write-Error 'Agents.exe not found'; exit 1 }
-}
-$argList = @('--agents')
-Start-Process -FilePath $exe -ArgumentList $argList -Verb RunAs
-'@
-          $agentsCmd = '@echo off', 'powershell -NoProfile -ExecutionPolicy Bypass -File %~dp0Launch-Agents-Window.ps1'
-          Set-Content -Path (Join-Path $agentsDir 'Launch-Agents-Window.ps1') -Value $agentsPs1 -Encoding UTF8
-          Set-Content -Path (Join-Path $agentsDir 'Launch-Agents-Window.cmd') -Value ($agentsCmd -join "`r`n") -Encoding ASCII
+          $scriptDir = Join-Path (Get-Location) '.github/scripts'
+          Copy-Item (Join-Path $scriptDir 'launch-agents-window.ps1') (Join-Path $agentsDir 'Launch-Agents-Window.ps1') -Force
+          Copy-Item (Join-Path $scriptDir 'launch-agents-window.cmd') (Join-Path $agentsDir 'Launch-Agents-Window.cmd') -Force
           Compress-Archive -Path (Join-Path $agentsDir '*') -DestinationPath downloads\autopilot-agents-win32-x64.zip
 
           Write-Output 'Built portals:'
