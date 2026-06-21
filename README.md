@@ -3,10 +3,7 @@
 ## Read First
 
 > [!IMPORTANT]
-> You must run the application as administrator on Windows.
-
-> [!IMPORTANT]
-This is required because Windows Security may **incorrectly** flag certain operations, which can prevent the app from running properly. If you do not do this, the app may fail to open or display security warnings.
+> You must run the application as administrator on Windows. This is required because Windows Security may **incorrectly** flag certain operations, which can prevent the app from running properly. If you do not do this, the app may fail to open or display security warnings.
 
 > [!IMPORTANT]
 On macOS, allow any system permission prompts when they appear, or run the app using `sudo` if you are launching it from Terminal.
