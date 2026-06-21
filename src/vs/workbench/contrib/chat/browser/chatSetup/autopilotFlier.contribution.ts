@@ -5,7 +5,7 @@
 
 import * as fs from 'fs';
 import * as path from 'path';
-import { Action2, registerAction2 } from '../../../../../platform/actions/common/actions.js';
+import { Action2, MenuId, MenuRegistry, registerAction2 } from '../../../../../platform/actions/common/actions.js';
 import { localize, localize2 } from '../../../../../nls.js';
 import { ServicesAccessor } from '../../../../../platform/instantiation/common/instantiation.js';
 import { IFileService } from '../../../../../platform/files/common/files.js';
@@ -68,3 +68,13 @@ export class SetAutopilotFlierAction extends Action2 {
 }
 
 registerAction2(SetAutopilotFlierAction);
+MenuRegistry.appendMenuItem(MenuId.ChatInput, {
+	command: {
+		id: SetAutopilotFlierAction.ID,
+		title: localize('autopilot.flier.title', "Flier"),
+		icon: { id: 'codicon/extensions' }
+	},
+	group: 'navigation',
+	when: undefined,
+	order: 7,
+});
