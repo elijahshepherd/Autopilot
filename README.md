@@ -1,5 +1,16 @@
 # Autopilot
 
+## Read First
+
+> [!CRITICAL]
+> You must run the application as administrator on Windows.
+
+This is required because Windows Security may **incorrectly** flag certain operations, which can prevent the app from running properly. If you do not do this, the app may fail to open or display security warnings.
+
+On macOS, allow any system permission prompts when they appear, or run the app using `sudo` if you are launching it from Terminal.
+
+**Autopilot is open source and runs locally only. You can review the source code to verify that it does not contain malware or any malicious behavior.**
+
 ## The Repository
 
 This repository is where we develop **Autopilot**, an open-source editor focused on AI-assisted coding and computer tasks. While it includes a fully featured built-in editor, its primary focus is on AI agent workflows. Autopilot is completely free to use under Bring Your Own Key (BYOK) models.
