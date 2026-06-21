@@ -98,17 +98,68 @@ function prependCapabilityManifest(
 		"When the user asks you to run a command, edit a file, or perform any workspace operation, prefer the matching Autopilot tool from this list. Do not claim a feature is unavailable unless the matching tool name is not present here.",
 		'All reasoning, planning, tool-call envelopes, and intermediate state must stay internal and never appear in your final message text. Only the user message, any startup notice, and the final response are visible to the user.',
 		'When asked to reply, produce only that output — no hidden prelude.',
+
 		'',
 		'--- BEGIN SESSION ---',
 	].join('\n');
-	const systemIndex = messages.findIndex(m => m.role === 'system');
-	const next = messages.slice();
-	if (systemIndex >= 0) {
-		next[systemIndex] = { role: 'system', content: manifest + '\n\n' + next[systemIndex].content };
-	} else {
-		next.unshift({ role: 'system', content: manifest });
+	const merged: Array<{ role: string; content: string }> = messages.slice();
+	const flierPrompt = resolveActiveFlier();
+	if (flierPrompt) {
+		merged.unshift({ role: 'system', content: flierPrompt });
 	}
-	return next;
+	const systemIndex = merged.findIndex(m => m.role === 'system');
+	if (systemIndex >= 0) {
+		merged[systemIndex] = { role: 'system', content: manifest + '\n\n' + merged[systemIndex].content };
+	} else {
+		merged.unshift({ role: 'system', content: manifest });
+	}
+	return merged;
+}
+
+/**
+ * Determine the active Flier system prompt, if any. Reads from:
+ *
+ * 1. The `autopilot.flier` workspace setting if it's a known built-in id.
+ * 2. `<workspace-root>/.autopilot/fliers/<id>.md` for user-defined fliers.
+ *
+ * Returns `undefined` when no flier is active (the default).
+ */
+function resolveActiveFlier(): string | undefined {
+	try {
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const fs = require('fs') as typeof import('fs');
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const path = require('path') as typeof import('path');
+		// Lazy-load the flier registry to avoid touching it on the hot path
+		// unless a flier is requested.
+		// eslint-disable-next-line @typescript-eslint/no-require-imports
+		const registry = require('../../flier/common/flierRegistry.js') as typeof import('../../flier/common/flierRegistry.js');
+		const workspaceRoot = process.env.VSCODE_CWD ?? process.cwd?.() ?? process.cwd();
+		const settingPath = path.join(workspaceRoot, '.autopilot', 'flier.json');
+		let activeId: string | undefined;
+		try {
+			if (fs.existsSync(settingPath)) {
+				const raw = JSON.parse(fs.readFileSync(settingPath, 'utf-8'));
+				if (typeof (raw as { id?: unknown }).id === 'string') {
+					activeId = (raw as { id: string }).id;
+				} else if (typeof (raw as { flier?: unknown }).flier === 'string') {
+					activeId = (raw as { flier: string }).flier;
+				}
+			}
+		} catch { /* malformed file — ignore */ }
+		if (!activeId) return undefined;
+		// Built-in flier?
+		const builtinPrompt = registry.getFlierPrompt(activeId);
+		if (builtinPrompt) return builtinPrompt;
+		// User-defined flier?
+		const userPath = path.join(workspaceRoot, '.autopilot', 'fliers', `${activeId}.md`);
+		try {
+			if (fs.existsSync(userPath)) {
+				return fs.readFileSync(userPath, 'utf-8');
+			}
+		} catch { /* ignore */ }
+	} catch { /* ignore — flier system is best-effort */ }
+	return undefined;
 }
 
 function isProcessElevated(): boolean {
