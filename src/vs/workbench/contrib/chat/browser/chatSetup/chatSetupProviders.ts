@@ -296,11 +296,12 @@ export class SetupAgent extends Disposable implements IChatAgentImplementation {
 		try {
 			await this.doForwardRequestToChat(requestModel, progress, chatService, languageModelsService, chatAgentService, chatWidgetService, languageModelToolsService);
 		} catch (error) {
-			this.logService.error('[chat setup] Failed to forward request to chat', error);
+			this.logService.error('[Autopilot] Failed to forward request to chat', error);
 
+			const detail = error instanceof Error ? error.message : String(error);
 			progress({
 				kind: 'warning',
-				content: new MarkdownString(localize('copilotUnavailableWarning', "Failed to get a response. Please try again."))
+				content: new MarkdownString(localize('copilotUnavailableWarning', "Autopilot caught this error forwarding your request: {0}", detail || 'unknown'))
 			});
 		}
 	}
