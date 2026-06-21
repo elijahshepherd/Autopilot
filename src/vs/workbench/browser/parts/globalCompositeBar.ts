@@ -687,8 +687,13 @@ function simpleActivityContextMenuActions(storageService: IStorageService, isAcc
 }
 
 export function isAccountsActionVisible(storageService: IStorageService): boolean {
-	return false;
+	// Autopilot: respect user choice — by default the Accounts menu is hidden
+	// since Autopilot does not require sign-in. Users can restore the menu by
+	// setting `workbench.accounts.visible` to true in workspace storage.
+	return setAccountsActionVisible(storageService, storageService.getBoolean('workbench.accounts.visible', StorageScope.WORKSPACE, false));
 }
 
-function setAccountsActionVisible(storageService: IStorageService, visible: boolean) {
+function setAccountsActionVisible(storageService: IStorageService, visible: boolean): boolean {
+	storageService.store('workbench.accounts.visible', visible, StorageScope.WORKSPACE, StorageTarget.MACHINE);
+	return visible;
 }

@@ -383,7 +383,7 @@ export abstract class ToolCallingLoop<TOptions extends IToolCallingLoopOptions =
 		this._logService.trace(`[ToolCallingLoop] Stop hook blocked stopping: ${reasons.join('; ')}`);
 	}
 
-	private static readonly MAX_AUTOPILOT_RETRIES = 3;
+	private static readonly MAX_AUTOPILOT_RETRIES = 2;
 	private static readonly MAX_AUTOPILOT_ITERATIONS = 3;
 	private autopilotRetryCount = 0;
 	private autopilotIterationCount = 0;

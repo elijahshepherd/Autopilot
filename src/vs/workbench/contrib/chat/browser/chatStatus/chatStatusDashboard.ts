@@ -582,24 +582,24 @@ export class ChatStatusDashboard extends DomWidget {
 			descriptionText = new MarkdownString(localize({ key: 'activeDescriptionAnonymous', comment: ['{Locked="]({2})"}', '{Locked="]({3})"}'] }, "By continuing with {0} Autopilot AI, you agree to {1}'s [Terms]({2}) and [Privacy Statement]({3})", defaultChat.provider.default.name, defaultChat.provider.default.name, defaultChat.termsStatementUrl, defaultChat.privacyStatementUrl), { isTrusted: true });
 			descriptionClass = `${descriptionClass}.terms`;
 		} else if (newUser) {
-			descriptionText = localize('activateDescription', "Set up Autopilot AI to use AI features.");
+			descriptionText = localize('activateDescription', "Set up Autopilot.");
 		} else if (anonymousUser) {
 			descriptionText = localize('enableMoreDescription', "Sign in to enable more Autopilot AI features.");
 		} else if (disabled) {
-			descriptionText = localize('enableDescription', "Enable Autopilot AI to use AI features.");
+			descriptionText = localize('enableDescription', "Autopilot is ready.");
 		} else {
-			descriptionText = localize('signInDescription', "Sign in to use Autopilot AI features.");
+			descriptionText = localize('signInDescription', "Use Autopilot.");
 		}
 
 		let buttonLabel: string;
 		if (newUser) {
-			buttonLabel = localize('enableAIFeatures', "Use AI Features");
+			buttonLabel = localize('enableAIFeatures', "Use Autopilot");
 		} else if (anonymousUser) {
-			buttonLabel = localize('enableMoreAIFeatures', "Enable more AI Features");
+			buttonLabel = localize('enableMoreAIFeatures', "Enable more Autopilot features");
 		} else if (disabled) {
-			buttonLabel = localize('enableCopilotButton', "Enable AI Features");
+			buttonLabel = localize('enableCopilotButton', "Enable Autopilot");
 		} else {
-			buttonLabel = localize('signInToUseAIFeatures', "Sign in to use Autopilot AI");
+			buttonLabel = localize('signInToUseAIFeatures', "Use Autopilot");
 		}
 
 		let commandId: string;

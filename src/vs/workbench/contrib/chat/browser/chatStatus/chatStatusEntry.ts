@@ -38,7 +38,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 
 	static readonly ID = 'workbench.contrib.chatStatusBarEntry';
 
-	private static readonly TITLE_BAR_CONTEXT_KEYS = new Set(['updateTitleBar', InEditorZenModeContext.key, ChatEntitlementContextKeys.hasByokModels.key]);
+	private 	static readonly TITLE_BAR_CONTEXT_KEYS = new Set(['updateTitleBar', InEditorZenModeContext.key, ChatEntitlementContextKeys.hasByokModels.key]);
 
 	private entry: IStatusbarEntryAccessor | undefined = undefined;
 
@@ -233,7 +233,7 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 		}
 
 		const baseResult = {
-			name: localize('chatStatus', "Autopilot AI Status"),
+			name: localize('chatStatus', "Autopilot status"),
 			text,
 			ariaLabel,
 			command: ShowTooltipCommand,
@@ -248,9 +248,9 @@ export class ChatStatusBarEntry extends Disposable implements IWorkbenchContribu
 
 	private getSetupEntryProps(): IStatusbarEntry {
 		const showSignInLabel = !this.isSignInTitleBarAffordanceVisible();
-		const signInLabel = localize('signIn', "Sign In");
+		const signInLabel = localize('signIn', "Sign in");
 		return {
-			name: localize('chatStatus', "Autopilot AI Status"),
+			name: localize('chatStatus', "Autopilot status"),
 			text: showSignInLabel ? `$(copilot) ${signInLabel}` : '$(copilot)',
 			ariaLabel: showSignInLabel ? signInLabel : localize('chatStatusAria', "Autopilot AI status"),
 			command: CHAT_SETUP_ACTION_ID,
