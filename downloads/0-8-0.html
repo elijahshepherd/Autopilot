@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Autopilot v0.8.0 Downloads</title>
+<style>
+body { font-family: system-ui, sans-serif; max-width: 700px; margin: 40px auto; padding: 0 20px; color: #000; background: #fff; }
+h1 { border-bottom: 1px solid #000; padding-bottom: 10px; }
+p { color: #333; }
+.platform { border: 1px solid #000; padding: 16px 20px; margin: 12px 0; display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 10px; }
+.platform .name { font-weight: 600; font-size: 16px; }
+.platform .size { color: #333; font-size: 14px; }
+.platform a { background: #000; color: #fff; padding: 8px 20px; text-decoration: none; font-weight: 500; font-size: 14px; }
+.platform a:hover { background: #333; }
+.bottom { border: 1px solid #000; padding: 12px 16px; margin-top: 24px; font-size: 13px; background: #f5f5f5; }
+code { background: #eee; padding: 1px 4px; }
+.feature { background: #e6f7ff; border-left: 4px solid #0066cc; padding: 8px 12px; margin: 12px 0; font-size: 14px; }
+</style>
+</head>
+<body>
+<h1>Autopilot v0.8.0</h1>
+
+<div class="feature"><strong>New:</strong> Agents Window now spawns as its own admin-elevated EXE &mdash; no more "loads forever". New <strong>Debug</strong> chat mode. AI self-identifies as Autopilot (not GitHub Copilot). CAPI <code>#codebase</code> crash fixed with local-model fallback.</div>
+
+<p>Download for your platform. Extract the archive and run.</p>
+
+<div class="platform">
+  <div><span class="name">Windows x64</span><br><span class="size">~350 MB</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.8.0/autopilot-win32-x64.zip" download>Download</a>
+</div>
+
+<div class="platform">
+  <div><span class="name">macOS ARM64</span><br><span class="size">~320 MB</span><br><span class="size">Apple Silicon</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.8.0/autopilot-darwin-arm64.zip" download>Download</a>
+</div>
+
+<div class="platform">
+  <div><span class="name">macOS x64</span><br><span class="size">~330 MB</span><br><span class="size">Intel Macs</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.8.0/autopilot-darwin-x64.zip" download>Download</a>
+</div>
+
+<div class="platform">
+  <div><span class="name">Linux x64</span><br><span class="size">~320 MB</span></div>
+  <a href="https://github.com/elijahshepherd/Autopilot/releases/download/v0.8.0/autopilot-linux-x64.tar.gz" download>Download</a>
+</div>
+
+<div class="bottom">
+  <strong>v0.8.0 Highlights</strong><br>
+  &bull; <strong>Agents Window: separate admin EXE</strong> &mdash; spawns a fully elevated window in its own process instead of opening in the editor window (which used to "load forever")<br>
+  &bull; <strong>Debug chat mode</strong> &mdash; new "Debug" pill in the chat header for autonomous diagnose-and-fix workflows<br>
+  &bull; <strong>AI identity</strong> &mdash; chat responses now say "Autopilot" with a direct, easy-to-understand tone (no emojis)<br>
+  &bull; <strong>CAPI fallback</strong> &mdash; <code>#codebase</code> and endpoint resolution now fall back to local models when CAPI fails<br>
+  &bull; <strong>Status bar fully hidden</strong> &mdash; Copilot quota/status icons never appear<br>
+  &bull; <strong>MCP servers removed</strong> &mdash; <code>vscode-automation-mcp</code> and <code>component-explorer</code> entries cleaned out<br><br>
+  <strong>How to use</strong><br>
+  Windows: Extract the zip, double-click <code>Autopilot.exe</code> (UAC prompt will appear)<br>
+  macOS: Extract the zip, open <code>Autopilot.app</code><br>
+  Linux: <code>tar -xzf autopilot-linux-x64.tar.gz && ./autopilot</code><br><br>
+  <strong>Models</strong><br>
+  Ollama auto-detected on localhost:11434. Set <code>OPENAI_API_KEY</code> and <code>OPENAI_BASE_URL</code> (defaults to https://api.openai.com/v1) for any OpenAI-compatible endpoint including NVIDIA NIM. Set <code>ANTHROPIC_API_KEY</code> for Anthropic. Or drop a JSON config at <code>~/.autopilot/providers.json</code>.<br><br>
+  These are unsigned portable builds. Windows SmartScreen may flag the executable.
+</div>
+</body>
+</html>
