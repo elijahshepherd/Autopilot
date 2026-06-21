@@ -220,27 +220,18 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.9.0
-          name: "Autopilot v0.9.0"
+          tag_name: v0.9.1
+          name: "Autopilot v0.9.1"
           body: |
-            ## Autopilot v0.9.0
+            ## Autopilot v0.9.1
 
-            ### Tooling, prompts, and chat hygiene
-            - **Reasoning is now collapsible, never leaked**: OpenAI `reasoning_content` and Anthropic `thinking_delta` are routed through the proper `LanguageModelThinkingPart`, so VS Code renders them as the standard collapsible "thinking" disclosure. Hidden reasoning blocks (`<thinking>`, `<reasoning>`, `<think>`) that some open-source models emit as plain text are scrubbed from the assistant message body.
-            - **Malformed tool outputs are dropped, not shown**: Tool-call envelopes, `questions` arrays, surveys, and similar JSON payloads that occasionally leak from low-quality model output are detected and stripped before they reach the UI.
-            - **Agent capability manifest**: Each request now carries a startup system message that lists the exact tools Auto-mode has available (file edits, terminal commands, search, fetch, workspace ops, etc.). The AI no longer claims features are unavailable when they're enabled.
-            - **Bounded rate-limit handling**: 429 responses now retry at most once with a 30-second ceiling, then surface a friendly user-visible error (`Autopilot rate limit reached. Please try again shortly.`) — no infinite loops, no exponential growth, no endless thinking animations.
-            - **Empty-stream safeguard**: If a model returns an empty stream, the user no longer sees a silent turn — Autopilot shows a clear `(the model produced no output for this request)` notice.
-
-            ### Infrastructure
-            - **Streaming hardened**: Streaming responses now run via `LanguageModelResponsePart2`, matching the BYOK providers (Anthropic/Gemini) so reasoning/tool parts are passed through cleanly.
-            - **Improved chat-status UI**: Removed "Autopilot AI Status", "Use AI Features", "Sign In", and other title-cased strings in favor of sentence-case labels per Autopilot standards.
-            - **Account menu hidden by default, toggleable**: The Accounts icon restored as a user-toggleable command (`workbench.accounts.visible` workspace-storage key). Default is hidden since sign-in is optional.
-            - **Auto-retry ceiling reduced** in `toolCallingLoop` (3→2) so transient errors recover faster without runaway waiting periods.
-
-            ### Workspace modes — Fliers
-            - **Fliers**: Domain-focused workspace modes. Drop a `.autopilot/flier.json` file at the workspace root containing `{ "id": "roblox" }` to enable the Roblox development flier, or load a custom `.autopilot/fliers/<id>.md` to define your own.
-            - **Built-in Roblox flier**: A comprehensive Lua/Roblox Studio/Rojo/Wally-flavored system prompt that convinces the model to behave as a Roblox development specialist (modules, scripts, services, optimization, asset/audio considerations). The flier also exposes specialized sub-agents **Jessie — the builder** and **Jack — Audio Pro** for context-aware multi-turn use.
+            ### Polish & tweaks
+            - **Fliers in chat input toolbar**: a new "Flier" entry appears in the chat input navigation group. Click it (or `Autopilot: Set Autopilot flier` from the command palette) to switch between built-in domain specialists like Roblox/Lua and your own user-defined Fliers under `.autopilot/fliers/<id>.md`.
+            - **Plan chat mode** added to the Ask/Edit/Agent pills.
+            - **Underlying error surfaced** when chat forwarding fails (mentions, drop-in entries, etc.) instead of the generic "Failed to get a response" notice.
+            - **Friendly rate-limit copy** baked into the chat status widget.
+            - **Sentence-case UI** across the chat-status dashboard, chat setup, and the agents picker.
+            - **Auth menu toggleable**: the Accounts icon returns as a user-toggleable command (`workbench.accounts.visible` workspace-storage key).
 
             ### Downloads
             - [Linux x64](autopilot-linux-x64.tar.gz)
