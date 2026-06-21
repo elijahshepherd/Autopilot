@@ -410,6 +410,7 @@ function streamOpenAIInner(urlStr: string, headers: Record<string, string>, body
 				return;
 			}
 			let buffer = ''; res.setEncoding('utf-8');
+			let emittedAnyText = false;
 			res.on('data', (chunk: string) => {
 				if (token.isCancellationRequested) { req.destroy(); return; }
 				buffer += chunk;
@@ -421,10 +422,6 @@ function streamOpenAIInner(urlStr: string, headers: Record<string, string>, body
 						try {
 							const parsed = JSON.parse(t.slice(6));
 							const delta = parsed?.choices?.[0]?.delta ?? {};
-							// Autopilot: route reasoning deltas through a thinking part
-							// so VS Code renders them as a collapsed disclosure rather
-							// than mixing them into the assistant message text. Tool-call
-							// / function-call deltas must never surface as plain text.
 							if (delta.reasoning_content) {
 								progress.report(new vscode.LanguageModelThinkingPart(delta.reasoning_content, 'openai-reasoning'));
 								continue;
@@ -435,13 +432,21 @@ function streamOpenAIInner(urlStr: string, headers: Record<string, string>, body
 								const cleaned = redactMalformedStructuredOutput(content);
 								if (cleaned.length > 0) {
 									progress.report(new vscode.LanguageModelTextPart(cleaned));
+									emittedAnyText = true;
 								}
 							}
 						} catch { /* skip malformed */ }
 					}
 				}
 			});
-			res.on('end', resolve);
+			res.on('end', () => {
+				if (!emittedAnyText) {
+					// Autopilot: ensure the user never sees a silent stream. Surface
+					// a clear, friendly notice so the chat shows a final response.
+					progress.report(new vscode.LanguageModelTextPart('(the model produced no output for this request)'));
+				}
+				resolve();
+			});
 			res.on('error', reject);
 		});
 		req.on('error', reject);
@@ -479,6 +484,7 @@ function streamAnthropicInner(urlStr: string, headers: Record<string, string>, b
 				return;
 			}
 			let buffer = ''; res.setEncoding('utf-8');
+			let emittedAnyText = false;
 			res.on('data', (chunk: string) => {
 				if (token.isCancellationRequested) { req.destroy(); return; }
 				buffer += chunk;
@@ -494,12 +500,9 @@ function streamAnthropicInner(urlStr: string, headers: Record<string, string>, b
 									const cleaned = redactMalformedStructuredOutput(parsed.delta.text);
 									if (cleaned.length > 0) {
 										progress.report(new vscode.LanguageModelTextPart(cleaned));
+										emittedAnyText = true;
 									}
 								} else if (parsed.delta?.type === 'thinking_delta' && parsed.delta.thinking) {
-									// Autopilot: route Anthropic reasoning through the
-									// thinking part so VS Code renders it as a collapsed
-									// "thinking" disclosure rather than streaming it
-									// verbatim into the assistant message text.
 									progress.report(new vscode.LanguageModelThinkingPart(parsed.delta.thinking, 'anthropic-reasoning'));
 								}
 							}
@@ -507,7 +510,12 @@ function streamAnthropicInner(urlStr: string, headers: Record<string, string>, b
 					}
 				}
 			});
-			res.on('end', resolve);
+			res.on('end', () => {
+				if (!emittedAnyText) {
+					progress.report(new vscode.LanguageModelTextPart('(the model produced no output for this request)'));
+				}
+				resolve();
+			});
 			res.on('error', reject);
 		});
 		req.on('error', reject);
