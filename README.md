@@ -8,8 +8,8 @@
 > [!IMPORTANT]
 On macOS, allow any system permission prompts when they appear, or run the app using `sudo` if you are launching it from Terminal.
 
-> [!IMPORTANT]
-**Autopilot is open source and runs locally only. You can review the source code to verify that it does not contain malware or any malicious behavior.**
+> [!NOTE]
+> **Autopilot is open source and runs locally only. You can review the source code to verify that it does not contain malware or any malicious behavior.**
 
 ## The Repository
 
