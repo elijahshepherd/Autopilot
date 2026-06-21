@@ -21,7 +21,7 @@ code { background: #eee; padding: 1px 4px; }
 <body>
 <h1>Autopilot v0.9.0</h1>
 
-<div class="feature"><strong>New:</strong> Reasoning is now collapsible, never leaked into the visible message. Tool-call envelopes and malformed structured outputs are detected and stripped. Rate-limit handling is bounded &mdash; one retry, then a clear message, no infinite loops. Each request now carries a startup capability manifest so the AI knows which tools are enabled.</div>
+<div class="feature"><strong>New:</strong> Reasoning is now collapsible, never leaked into the visible message. Tool-call envelopes and malformed structured outputs are detected and stripped. Rate-limit handling is bounded &mdash; one retry, then a clear message, no infinite loops. Each request now carries a startup capability manifest so the AI knows which tools are enabled. <strong>Fliers</strong> let you specialize the workspace for domains like Roblox/Lua.</div>
 
 <p>Download for your platform. Extract the archive and run.</p>
 
@@ -51,6 +51,9 @@ code { background: #eee; padding: 1px 4px; }
   &bull; <strong>Malformed tool-call scrubber</strong> &mdash; if a model emits raw JSON like <code>{"questions": [...]}</code> or a tool envelope, it's stripped before reaching the UI<br>
   &bull; <strong>Bounded rate-limit handling</strong> &mdash; at most one retry (30-second ceiling), then a clear user-facing message; no infinite loops or runaway waiting animations<br>
   &bull; <strong>Capability manifest</strong> &mdash; each request carries a startup system message listing enabled tools and platform/elevation so the AI knows what's available<br>
+  &bull; <strong>Empty-stream safeguard</strong> &mdash; empty model responses surface a friendly notice instead of a silent turn<br>
+  &bull; <strong>Fliers</strong> &mdash; workspace-level domain modes (e.g. Roblox/Lua). Drop <code>.autopilot/flier.json</code> with <code>{"id":"roblox"}</code> or define a custom <code>.autopilot/fliers/<id>.md</code><br>
+  &bull; <strong>Sentence-case UI</strong> &mdash; removed title-cased "Sign In", "Use AI Features", and similar labels<br>
   &bull; <strong>Streaming hardened</strong> &mdash; provider now uses <code>LanguageModelResponsePart2</code>, matching the BYOK Anthropic/Gemini providers<br><br>
   <strong>How to use</strong><br>
   Windows: Extract the zip, double-click <code>Autopilot.exe</code> (UAC prompt will appear)<br>
