@@ -198,6 +198,45 @@ jobs:
           mkdir downloads -Force
           Compress-Archive -Path ..\VSCode-win32-x64\* -DestinationPath downloads\autopilot-win32-x64.zip
 
+          # Autopilot: build a second zip containing a copy of the EXE renamed
+          # `Agents.exe` plus a launcher script that invokes the agents-window
+          # mode with admin elevation. This way the user can pin a separate
+          # "Agents" icon next to "Autopilot" without us having to maintain a
+          # second electron product.
+          $sourceDir = "..\VSCode-win32-x64"
+          $agentsDir = "..\VSCode-agents-win32-x64"
+          if (Test-Path $agentsDir) { Remove-Item -Recurse -Force $agentsDir }
+          New-Item -ItemType Directory -Force -Path $agentsDir | Out-Null
+          $skip = @("Code.exe", "Code - Insiders.exe")
+          Get-ChildItem -Path $sourceDir -Force | Where-Object { -not ($skip -contains $_.Name) | ForEach-Object {
+            Copy-Item -Path "$($_.FullName)" -Destination $agentsDir -Recurse -Force
+          }
+          # Rename Autopilot.exe → Agents.exe if it exists.
+          if (Test-Path "$agentsDir\Autopilot.exe") {
+            Copy-Item "$agentsDir\Autopilot.exe" "$agentsDir\Agents.exe" -Force
+          }
+          # Launcher scripts that route to the agents window with admin elevation.
+          $agentsPs1 = @'
+$exe = Join-Path $PSScriptRoot 'Agents.exe'
+if (-not (Test-Path $exe)) {
+  $fallback = Join-Path $PSScriptRoot 'Autopilot.exe'
+  if (Test-Path $fallback) { $exe = $fallback } else { Write-Error 'Agents.exe not found' ; exit 1 }
+}
+$argList = @('--agents')
+Start-Process -FilePath $exe -ArgumentList $argList -Verb RunAs
+'@
+          $agentsCmd = @'@echo off
+powershell -NoProfile -ExecutionPolicy Bypass -File "%~dp0Launch-Agents-Window.ps1"
+'@
+          Set-Content -Path "$agentsDir\Launch-Agents-Window.ps1" -Value $agentsPs1 -Encoding UTF8
+          Set-Content -Path "$agentsDir\Launch-Agents-Window.cmd" -Value $agentsCmd -Encoding ASCII
+          Compress-Archive -Path "$agentsDir\*" -DestinationPath downloads\autopilot-agents-win32-x64.zip
+
+          Write-Output "Built portals:"
+          Get-ChildItem downloads | Format-Table Name, Length
+        env:
+          ELECTRON_NO_ATTACH_CONSOLE: '1'
+
       - uses: actions/upload-artifact@v7
         with:
           name: autopilot-win32-x64
@@ -220,28 +259,27 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.9.1
-          name: "Autopilot v0.9.1"
+          tag_name: v0.9.2
+          name: "Autopilot v0.9.2"
           body: |
-            ## Autopilot v0.9.1
+            ## Autopilot v0.9.2
 
-            ### Polish & tweaks
-            - **Fliers in chat input toolbar**: a new "Flier" entry appears in the chat input navigation group. Click it (or `Autopilot: Set Autopilot flier` from the command palette) to switch between built-in domain specialists like Roblox/Lua and your own user-defined Fliers under `.autopilot/fliers/<id>.md`.
-            - **Plan chat mode** added to the Ask/Edit/Agent pills.
-            - **Underlying error surfaced** when chat forwarding fails (mentions, drop-in entries, etc.) instead of the generic "Failed to get a response" notice.
-            - **Friendly rate-limit copy** baked into the chat status widget.
-            - **Sentence-case UI** across the chat-status dashboard, chat setup, and the agents picker.
-            - **Auth menu toggleable**: the Accounts icon returns as a user-toggleable command (`workbench.accounts.visible` workspace-storage key).
+            ### Editor in Agents Window + separate `Agents.exe`
+            - **Editor pane is now visible in the Agents Window** by default. Previously the sessions workbench initialized with the editor part hidden, which left the window looking like a chat-only screen. Now you get the editor + the chat sessions panel so you can edit files while talking to Autopilot.
+            - **Separate `Agents.exe` shipped on Windows**: To make it easier to pin a distinct icon for the agents-only experience, the Windows zip now includes a renamed copy of the binary alongside an `Agents.exe` launcher plus `Launch-Agents-Window.ps1` / `Launch-Agents-Window.cmd` shortcuts that spawn the agents window with admin elevation (the `--agents` flag).
+            - **Editor defaults** page visibility updated in `SessionsLayoutPolicy` — `editor: true` in both `phone` and `desktop`/`tablet` viewports.
 
             ### Downloads
             - [Linux x64](autopilot-linux-x64.tar.gz)
             - [macOS ARM64](autopilot-darwin-arm64.zip)
             - [macOS x64](autopilot-darwin-x64.zip)
             - [Windows x64](autopilot-win32-x64.zip)
+            - [Windows x64 agents bundle](autopilot-agents-win32-x64.zip)
           files: |
             autopilot-linux-x64/autopilot-linux-x64.tar.gz
             autopilot-darwin-arm64/autopilot-darwin-arm64.zip
             autopilot-darwin-x64/autopilot-darwin-x64.zip
             autopilot-win32-x64/autopilot-win32-x64.zip
+            autopilot-win32-x64/autopilot-agents-win32-x64.zip
           draft: true
           prerelease: false
