@@ -2,6 +2,7 @@
 
 Download pages for each release:
 
+- [v0.9.2](0-9-2.html) — Editor pane in Agents Window, separate Agents.exe with admin launcher, MiniMax M3 NVIDIA NIM fix, admin startup hang fix
 - [v0.9.1](0-9-1.html) — Flier chip in chat input, Plan mode, sentence-case UI, surfaced errors, toggleable auth menu
 - [v0.9.0](0-9-0.html) — Collapsible reasoning, malformed-output scrubber, bounded rate-limit, capability manifest, Fliers (Roblox)
 - [v0.8.0](0-8-0.html) — Agents Window as separate admin EXE, Debug mode, AI identity, CAPI fallback

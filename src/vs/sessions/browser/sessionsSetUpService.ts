@@ -13,7 +13,7 @@ import { IUserDataProfileStorageService } from '../../platform/userDataProfile/c
 import { IUserDataProfilesService } from '../../platform/userDataProfile/common/userDataProfile.js';
 import { ServiceCollection } from '../../platform/instantiation/common/serviceCollection.js';
 import { ChatEntitlementContext, IChatEntitlementService } from '../../workbench/services/chat/common/chatEntitlementService.js';
-import { isWeb } from '../../base/common/platform.js';
+import { isWeb, isWindows } from '../../base/common/platform.js';
 import { GitHubPaths, IDefaultAccountService } from '../../platform/defaultAccount/common/defaultAccount.js';
 import { IProductService } from '../../platform/product/common/productService.js';
 import { IContextKeyService } from '../../platform/contextkey/common/contextkey.js';
@@ -65,6 +65,21 @@ function shouldSkipSessionsWelcome(environmentService: IWorkbenchEnvironmentServ
 	return typeof globalThis.location !== 'undefined' && new URLSearchParams(globalThis.location.search).has('skip-sessions-welcome');
 }
 
+function isRunningAsAdmin(): boolean {
+	if (!isWindows) {
+		return false;
+	}
+	try {
+		// Check if we're running in an elevated context by checking the user profile path
+		// When running as admin, USERPROFILE often points to C:\Windows\System32\config\systemprofile
+		const userProfile = process.env.USERPROFILE || '';
+		const systemProfile = 'C:\\Windows\\System32\\config\\systemprofile';
+		return userProfile.toLowerCase().includes(systemProfile.toLowerCase());
+	} catch {
+		return false;
+	}
+}
+
 class SessionsSetUpWidget extends Disposable {
 
 	private readonly dialogRef = this._register(new MutableDisposable<DisposableStore>());
@@ -94,6 +109,14 @@ class SessionsSetUpWidget extends Disposable {
 
 	private _start(): void {
 		if (!this.productService.defaultChatAgent?.chatExtensionId) {
+			this.onCompleted();
+			return;
+		}
+
+		// Skip welcome entirely when running as admin to avoid profile path issues
+		if (isRunningAsAdmin()) {
+			this.logService.info('[sessions welcome] Running as admin, skipping welcome setup');
+			this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
 			this.onCompleted();
 			return;
 		}
@@ -161,6 +184,13 @@ class SessionsSetUpWidget extends Disposable {
 	}
 
 	private async _watchSignInState(): Promise<void> {
+		// Skip if running as admin
+		if (isRunningAsAdmin()) {
+			this.logService.info('[sessions welcome] Running as admin, skipping sign-in state watch');
+			this.onCompleted();
+			return;
+		}
+
 		// Add a timeout to prevent hanging on admin/profile path issues
 		const accountPromise = this.defaultAccountService.getDefaultAccount();
 		const timeoutPromise = new Promise<null>((resolve) => {
