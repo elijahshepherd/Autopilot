@@ -19,7 +19,7 @@ import { IProductService } from '../../platform/product/common/productService.js
 import { IContextKeyService } from '../../platform/contextkey/common/contextkey.js';
 import { IWorkbenchEnvironmentService } from '../../workbench/services/environment/common/environmentService.js';
 import { IAuthenticationService } from '../../workbench/services/authentication/common/authentication.js';
-import { ICommandService } from '../../platform/commands/common/commands.js';
+
 import { IWorkbenchLayoutService } from '../../workbench/services/layout/browser/layoutService.js';
 import { IKeybindingService } from '../../platform/keybinding/common/keybinding.js';
 import { IHostService } from '../../workbench/services/host/browser/host.js';
@@ -82,7 +82,6 @@ class SessionsSetUpWidget extends Disposable {
 		@IWorkbenchEnvironmentService private readonly environmentService: IWorkbenchEnvironmentService,
 		@IAuthenticationService private readonly authenticationService: IAuthenticationService,
 		@ILogService private readonly logService: ILogService,
-		@ICommandService private readonly commandService: ICommandService,
 		@IConfigurationService private readonly configurationService: IConfigurationService,
 		@IWorkbenchLayoutService private readonly layoutService: IWorkbenchLayoutService,
 		@IKeybindingService private readonly keybindingService: IKeybindingService,
@@ -120,8 +119,16 @@ class SessionsSetUpWidget extends Disposable {
 	}
 
 	private async _checkWebAuth(): Promise<void> {
+		// Add a timeout to prevent hanging on admin/profile path issues
+		const sessionsPromise = this.authenticationService.getSessions('github');
+		const timeoutPromise = new Promise<never>((_, reject) => {
+			setTimeout(() => {
+				reject(new Error('getSessions timed out'));
+			}, 5000); // 5 second timeout
+		});
+		
 		try {
-			const sessions = await this.authenticationService.getSessions('github');
+			const sessions = await Promise.race([sessionsPromise, timeoutPromise]);
 			if (sessions.length > 0) {
 				this.logService.info('[sessions welcome] GitHub session found on web, skipping welcome');
 				this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
@@ -129,7 +136,7 @@ class SessionsSetUpWidget extends Disposable {
 				return;
 			}
 		} catch {
-			// Provider not available yet — show dialog
+			// Provider not available yet or timed out — show dialog
 		}
 		this._showWelcome(false);
 	}
@@ -154,7 +161,17 @@ class SessionsSetUpWidget extends Disposable {
 	}
 
 	private async _watchSignInState(): Promise<void> {
-		const initialAccount = await this.defaultAccountService.getDefaultAccount();
+		// Add a timeout to prevent hanging on admin/profile path issues
+		const accountPromise = this.defaultAccountService.getDefaultAccount();
+		const timeoutPromise = new Promise<null>((resolve) => {
+			setTimeout(() => {
+				this.logService.warn('[sessions welcome] getDefaultAccount timed out, proceeding without account');
+				resolve(null);
+			}, 5000); // 5 second timeout
+		});
+		
+		const initialAccount = await Promise.race([accountPromise, timeoutPromise]);
+		
 		if (this.dialogRef.value) {
 			return;
 		}
@@ -194,9 +211,18 @@ class SessionsSetUpWidget extends Disposable {
 	}
 
 	private async _ensureAIFeaturesEnabled(): Promise<void> {
+		// Add a timeout to prevent hanging on admin/profile path issues
+		const updatePromise = this.configurationService.updateValue(AIDisabledConfig, false);
+		const timeoutPromise = new Promise<void>((resolve) => {
+			setTimeout(() => {
+				this.logService.warn('[sessions welcome] updateValue timed out, proceeding anyway');
+				resolve();
+			}, 5000); // 5 second timeout
+		});
+		
 		if (this.configurationService.getValue<boolean>(AIDisabledConfig)) {
 			this.logService.info('[sessions welcome] AI features disabled, enabling');
-			await this.configurationService.updateValue(AIDisabledConfig, false);
+			await Promise.race([updatePromise, timeoutPromise]);
 		}
 	}
 
@@ -230,7 +256,17 @@ class SessionsSetUpWidget extends Disposable {
 			}, this.keybindingService, this.layoutService, this.hostService)
 		));
 
-		const { button } = await dialog.show();
+		// Add a timeout to prevent dialog hanging
+		const dialogPromise = dialog.show();
+		const timeoutPromise = new Promise<{ button: number }>((resolve) => {
+			setTimeout(() => {
+				this.logService.warn('[sessions welcome] Dialog show timed out, closing dialog');
+				dialog.dispose();
+				resolve({ button: 1 }); // Cancel
+			}, 30000); // 30 second timeout
+		});
+		
+		const { button } = await Promise.race([dialogPromise, timeoutPromise]);
 		disposables.dispose();
 		this.dialogRef.clear();
 
@@ -265,7 +301,16 @@ class SessionsSetUpWidget extends Disposable {
 			this.dialogRef.value.add(disposableTimeout(() => overlay.element.remove(), 200));
 
 			if (account) {
-				const setupDone = await this.serviceWhenSetupDone();
+				// Add a timeout to prevent hanging on admin/profile path issues
+				const setupDonePromise = this.serviceWhenSetupDone();
+				const timeoutPromise = new Promise<boolean>((resolve) => {
+					setTimeout(() => {
+						this.logService.warn('[sessions welcome] Setup check timed out, proceeding to welcome dialog');
+						resolve(false);
+					}, 5000); // 5 second timeout
+				});
+				const setupDone = await Promise.race([setupDonePromise, timeoutPromise]);
+				
 				if (this._store.isDisposed) {
 					return;
 				}
@@ -327,7 +372,17 @@ class SessionsSetUpWidget extends Disposable {
 			}, this.keybindingService, this.layoutService, this.hostService)
 		));
 
-		await dialog.show();
+		// Add a timeout to prevent dialog hanging
+		const dialogPromise = dialog.show();
+		const timeoutPromise = new Promise<void>((resolve) => {
+			setTimeout(() => {
+				this.logService.warn('[sessions welcome] Welcome dialog show timed out, closing dialog');
+				dialog.dispose();
+				resolve();
+			}, 30000); // 30 second timeout
+		});
+		
+		await Promise.race([dialogPromise, timeoutPromise]);
 		disposables.dispose();
 
 		this.storageService.store(WELCOME_COMPLETE_KEY, true, StorageScope.APPLICATION, StorageTarget.MACHINE);
@@ -402,6 +457,19 @@ export class SessionsSetUpService extends Disposable implements ISessionsSetUpSe
 			return;
 		}
 
+		// Add a timeout to prevent hanging on admin/profile path issues
+		const initPromise = this._doInitialize();
+		const timeoutPromise = new Promise<void>((resolve) => {
+			setTimeout(() => {
+				this.logService.warn('[sessions welcome] Initialize timed out, proceeding without setup check');
+				resolve();
+			}, 5000); // 5 second timeout
+		});
+		
+		await Promise.race([initPromise, timeoutPromise]);
+	}
+
+	private async _doInitialize(): Promise<void> {
 		try {
 			const defaultProfile = this.userDataProfilesService.defaultProfile;
 			await this.userDataProfileStorageService.withProfileScopedStorageService(defaultProfile, async storageService => {

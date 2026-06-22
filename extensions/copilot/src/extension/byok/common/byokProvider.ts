@@ -66,6 +66,12 @@ export interface BYOKModelCapabilities {
 	 * If unset the format is inferred from whether the endpoint uses the Responses API.
 	 */
 	reasoningEffortFormat?: 'chat-completions' | 'responses';
+	/**
+	 * Whether to include reasoning_content in assistant message history.
+	 * Some endpoints (e.g., NVIDIA) don't support this field and return 500 errors.
+	 * Defaults to true for backward compatibility.
+	 */
+	includeReasoningContentInHistory?: boolean;
 }
 
 export interface BYOKModelRegistry {
@@ -128,7 +134,8 @@ export function resolveModelInfo(modelId: string, providerName: string, knownMod
 		model_picker_enabled: true,
 		supported_endpoints: knownModelInfo?.supportedEndpoints,
 		zeroDataRetentionEnabled: knownModelInfo?.zeroDataRetentionEnabled,
-		reasoningEffortFormat: knownModelInfo?.reasoningEffortFormat
+		reasoningEffortFormat: knownModelInfo?.reasoningEffortFormat,
+		supportsThinkingContentInHistory: knownModelInfo?.includeReasoningContentInHistory ?? true
 	};
 	if (knownModelInfo?.requestHeaders && Object.keys(knownModelInfo.requestHeaders).length > 0) {
 		modelInfo.requestHeaders = { ...knownModelInfo.requestHeaders };

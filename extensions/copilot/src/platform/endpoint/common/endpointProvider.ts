@@ -134,6 +134,12 @@ export type IChatModelInformation = IModelAPIResponse & {
 	 * Chat Completions → top-level `reasoning_effort`).
 	 */
 	reasoningEffortFormat?: 'chat-completions' | 'responses';
+	/**
+	 * Whether to include reasoning_content in assistant message history.
+	 * Some endpoints (e.g., NVIDIA) don't support this field and return 500 errors.
+	 * Defaults to true for backward compatibility.
+	 */
+	supportsThinkingContentInHistory?: boolean;
 };
 
 export function isChatModelInformation(model: IModelAPIResponse): model is IChatModelInformation {

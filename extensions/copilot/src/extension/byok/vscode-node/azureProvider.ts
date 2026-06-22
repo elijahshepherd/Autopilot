@@ -116,7 +116,8 @@ export class AzureBYOKModelProvider extends AbstractCustomOAIBYOKModelProvider {
 			streaming: modelConfiguration?.streaming,
 			requestHeaders: modelConfiguration?.requestHeaders,
 			editTools: model.capabilities?.editTools?.filter(isEndpointEditToolName),
-			zeroDataRetentionEnabled: modelConfiguration?.zeroDataRetentionEnabled
+			zeroDataRetentionEnabled: modelConfiguration?.zeroDataRetentionEnabled,
+			includeReasoningContentInHistory: modelConfiguration?.includeReasoningContentInHistory ?? true
 		};
 		const modelInfo = resolveModelInfo(model.id, this._name, undefined, modelCapabilities);
 

@@ -272,17 +272,19 @@ export class OpenAIEndpoint extends ChatEndpoint {
 		} else {
 			// Handle Chat Completions: provide callback for thinking data processing
 			const supportsThinking = !!this.modelMetadata.capabilities.supports.thinking;
+			const includeReasoningContentInHistory = this.modelMetadata.supportsThinkingContentInHistory ?? true;
 			const callback: RawMessageConversionCallback = (out, data) => {
 				if (data && data.id) {
 					out.cot_id = data.id;
 					const text = Array.isArray(data.text) ? data.text.join('') : data.text;
 					out.cot_summary = text;
-					if (supportsThinking) {
+					if (supportsThinking && includeReasoningContentInHistory) {
 						// Reasoning models require the assistant message to echo back its
 						// prior reasoning. DeepSeek, Moonshot (Kimi), Minimax, and similar
 						// OpenAI-compatible providers expect `reasoning_content`; OpenRouter's
 						// BYOK proxy expects `reasoning`. Without these, the turn after a tool
 						// call is rejected with HTTP 400.
+						// Some endpoints (e.g., NVIDIA) don't support this field and return 500 errors.
 						out.reasoning_content = text;
 						out.reasoning = text;
 					}

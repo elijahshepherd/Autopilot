@@ -64,6 +64,12 @@ interface _CustomOAIModelConfig {
 	zeroDataRetentionEnabled?: boolean;
 	supportsReasoningEffort?: string[];
 	reasoningEffortFormat?: 'chat-completions' | 'responses';
+	/**
+	 * Whether to include reasoning_content in assistant message history.
+	 * Some endpoints (e.g., NVIDIA) don't support this field and return 500 errors.
+	 * Defaults to true for backward compatibility.
+	 */
+	includeReasoningContentInHistory?: boolean;
 }
 
 export interface CustomOAIModelConfig extends _CustomOAIModelConfig {
@@ -147,7 +153,8 @@ export abstract class AbstractCustomOAIBYOKModelProvider extends AbstractOpenAIC
 			requestHeaders: modelConfiguration?.requestHeaders,
 			zeroDataRetentionEnabled: modelConfiguration?.zeroDataRetentionEnabled,
 			supportsReasoningEffort: modelConfiguration?.supportsReasoningEffort,
-			reasoningEffortFormat: modelConfiguration?.reasoningEffortFormat
+			reasoningEffortFormat: modelConfiguration?.reasoningEffortFormat,
+			includeReasoningContentInHistory: modelConfiguration?.includeReasoningContentInHistory ?? true
 		};
 		const modelInfo = resolveModelInfo(model.id, this._name, undefined, modelCapabilities);
 		if (modelCapabilities?.url?.includes('/responses')) {

@@ -101,6 +101,12 @@ interface _CustomEndpointModelConfig {
 	zeroDataRetentionEnabled?: boolean;
 	supportsReasoningEffort?: string[];
 	reasoningEffortFormat?: 'chat-completions' | 'responses';
+	/**
+	 * Whether to include reasoning_content in assistant message history.
+	 * Some endpoints (e.g., NVIDIA) don't support this field and return 500 errors.
+	 * Defaults to true for backward compatibility.
+	 */
+	includeReasoningContentInHistory?: boolean;
 }
 
 export interface CustomEndpointModelConfig extends _CustomEndpointModelConfig {
@@ -161,7 +167,8 @@ export class CustomEndpointBYOKModelProvider extends AbstractOpenAICompatibleLMP
 			requestHeaders: modelConfiguration?.requestHeaders,
 			zeroDataRetentionEnabled: modelConfiguration?.zeroDataRetentionEnabled,
 			supportsReasoningEffort: modelConfiguration?.supportsReasoningEffort,
-			reasoningEffortFormat: modelConfiguration?.reasoningEffortFormat
+			reasoningEffortFormat: modelConfiguration?.reasoningEffortFormat,
+			includeReasoningContentInHistory: modelConfiguration?.includeReasoningContentInHistory ?? true
 		};
 		const modelInfo = resolveModelInfo(model.id, this._name, undefined, modelCapabilities);
 		const supportedEndpoints = apiTypeToSupportedEndpoints(apiType);

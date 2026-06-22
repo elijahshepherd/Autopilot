@@ -177,7 +177,9 @@ export abstract class AbstractOpenAICompatibleLMProvider<T extends LanguageModel
 	}
 
 	protected getModelInfo(modelId: string, modelUrl: string): IChatModelInformation {
-		return resolveModelInfo(modelId, this._name, this._knownModels);
+		return resolveModelInfo(modelId, this._name, this._knownModels, {
+			includeReasoningContentInHistory: true
+		});
 	}
 
 	protected resolveModelCapabilities(modelData: unknown): BYOKModelCapabilities | undefined {
