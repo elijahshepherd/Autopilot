@@ -244,10 +244,14 @@ jobs:
       - name: Create Release
         uses: softprops/action-gh-release@v2
         with:
-          tag_name: v0.9.2
-          name: "Autopilot v0.9.2"
+          tag_name: v0.9.3
+          name: "Autopilot v0.9.3"
           body: |
-            ## Autopilot v0.9.2
+            ## Autopilot v0.9.3
+
+            ### Fixes
+            - **Admin startup hang fixed**: When running as admin (e.g., `Start-Process -Verb RunAs Autopilot.exe --agents`), the app no longer hangs on the welcome/setup flow. Added admin detection that skips the welcome setup entirely when running with elevated privileges, preventing profile path issues.
+            - **MiniMax M3 on NVIDIA NIM fixed**: BYOK providers now support `includeReasoningContentInHistory: false` to disable `reasoning_content` in assistant history, preventing 500 errors on endpoints that don't support it (e.g., NVIDIA NIM).
 
             ### Editor in Agents Window + separate `Agents.exe`
             - **Editor pane is now visible in the Agents Window** by default. Previously the sessions workbench initialized with the editor part hidden, which left the window looking like a chat-only screen. Now you get the editor + the chat sessions panel so you can edit files while talking to Autopilot.
