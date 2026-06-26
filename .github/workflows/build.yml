@@ -242,7 +242,7 @@ jobs:
         uses: actions/download-artifact@v7
 
       - name: Create Release
-        uses: softprops/action-gh-release@v2
+        uses: softprops/action-gh-release@v3
         with:
           tag_name: v0.9.3
           name: "Autopilot v0.9.3"
